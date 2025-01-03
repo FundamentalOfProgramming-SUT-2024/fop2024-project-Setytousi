@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 
-int CUR_USER;
+int USERNUMBER;
 FILE *users_ptr, *emails_ptr, *passwords_ptr, *levels_ptr;
 
 void draw_border_menu();
@@ -15,7 +15,8 @@ void new_user_menu();
 void menus();
 void close_files();
 void open_files();
-
+void add_user(char *username, char *password, char *email);
+int countlines(FILE *file);
 
 
 int main(){
@@ -38,8 +39,21 @@ int main(){
     }
     close_files();
 }
-
-
+int countlines(FILE* file){
+    char s[100];
+    int ans = 0;
+    while(fgets(s, 100, users_ptr) != NULL){
+        ans++;
+    }
+    return ans;
+}
+void add_user(char *username, char *password, char *email){
+    USERNUMBER = countlines(users_ptr);
+    fprintf(users_ptr, "%s\n", username);
+    fprintf(passwords_ptr, "%s\n", password);
+    fprintf(emails_ptr, "%s\n", email);
+    fprintf(levels_ptr, "%d\n", 0);
+}
 void draw_border_menu(){
     attron(COLOR_PAIR(1));
     for (int i = 0; i <= 20; i++){
@@ -172,7 +186,7 @@ void new_user_menu(){
     sleep(2);
     attroff(COLOR_PAIR(2));
     noecho();
-    // add_user(username, password, email);
+    add_user(username, password, email);
     menus();
 }
 
@@ -280,7 +294,7 @@ void menus(){
                 return;
             }
             else if (curmenu == 2){
-                CUR_USER = -1;
+                USERNUMBER = -1;
                 clear();
                 return;
             }
@@ -304,10 +318,10 @@ void menus(){
     }
 }
 void open_files(){
-    users_ptr = fopen("users.txt", "w+");
-    levels_ptr = fopen("levels.txt", "w+");
-    passwords_ptr = fopen("passwords.txt", "w+");
-    emails_ptr = fopen("emails.txt", "w+");
+    users_ptr = fopen("users.txt", "a+");
+    levels_ptr = fopen("levels.txt", "a+");
+    passwords_ptr = fopen("passwords.txt", "a+");
+    emails_ptr = fopen("emails.txt", "a+");
 }
 void close_files(){
     fclose(users_ptr);
