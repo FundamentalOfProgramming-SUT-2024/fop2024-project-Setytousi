@@ -5,7 +5,7 @@
 #include <string.h>
 
 int USERNUMBER;
-FILE *users_ptr, *emails_ptr, *passwords_ptr, *levels_ptr;
+FILE *users_ptr, *emails_ptr, *passwords_ptr, *scores_ptr, *golds_ptr, *games_ptr, *register_times_ptr;
 
 void draw_border_menu();
 int check_username(char *username);
@@ -17,6 +17,9 @@ void close_files();
 void open_files();
 void add_user(char *username, char *password, char *email);
 int countlines(FILE *file);
+int find_username(char *username);
+void login_menu();
+int check_correct_password(char* password);
 
 
 int main(){
@@ -39,7 +42,97 @@ int main(){
     }
     close_files();
 }
+int check_correct_password(char* password){
+    rewind(passwords_ptr);
+    char s[30];
+    int cnt = 0;
+    while(fgets(s, 30, passwords_ptr) != NULL){
+        s[strlen(s) - 1] = '\0';
+        if (cnt == USERNUMBER){
+            if (strcmp(s, password) == 0) return 1;
+            return 0;
+        }
+        cnt++;
+    }
+    return 0;
+}
+int find_username(char* username){
+    rewind(users_ptr);
+    char s[30];
+    int cnt = 0;
+    while(fgets(s, 30, users_ptr) != NULL){
+        s[strlen(s) - 1] = '\0';
+        if (strcmp(s, username) == 0) return cnt;
+        cnt++;
+    }
+    return 0;
+}
+void login_menu(){
+    clear();
+    char username[30];
+    char password[30];
+    //get username
+    echo();
+    {
+        draw_border_menu();
+        attron(COLOR_PAIR(2));
+        attron(A_BLINK);
+        mvprintw(3, COLS / 2 - 20, "Enter username:");
+        attroff(COLOR_PAIR(2));
+        attroff(A_BLINK);
+        refresh();
+        scanw("%s", username);
+        sleep(1);
+        if (check_username(username)){
+            clear();
+            attron(COLOR_PAIR(4));
+            attron(A_BLINK);
+            mvprintw(3, COLS / 2 - 15, "Username doesn't exist!");
+            attroff(COLOR_PAIR(4));
+            attroff(A_BLINK);
+            refresh();
+            sleep(2);
+            clear();
+            noecho();
+            menus();
+            return;
+        }
+        USERNUMBER = find_username(username);
+        while(1){
+            clear();
+            draw_border_menu();
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(3, COLS / 2 - 20, "Enter Password:");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+            refresh();
+            scanw("%s", password);
+            if (strcmp(password, "q") == 0){
+                noecho();
+                clear();
+                menus();
+            }
+            if (!check_correct_password(password)){
+                attron(COLOR_PAIR(4));
+                attron(A_BLINK);
+                mvprintw(3, COLS / 2 - 20, "Wrong Password, Enter q to exit");
+                attroff(COLOR_PAIR(4));
+                attroff(A_BLINK);
+                refresh();
+                sleep(1);
+            }
+            else{
+                noecho();
+                clear();
+                refresh();
+                return;
+            }
+        }
+    }
+}
 int countlines(FILE* file){
+    rewind(users_ptr);
     char s[100];
     int ans = 0;
     while(fgets(s, 100, users_ptr) != NULL){
@@ -52,7 +145,9 @@ void add_user(char *username, char *password, char *email){
     fprintf(users_ptr, "%s\n", username);
     fprintf(passwords_ptr, "%s\n", password);
     fprintf(emails_ptr, "%s\n", email);
-    fprintf(levels_ptr, "%d\n", 0);
+    fprintf(scores_ptr, "%d\n", 0);
+    close_files();
+    open_files();
 }
 void draw_border_menu(){
     attron(COLOR_PAIR(1));
@@ -68,8 +163,10 @@ void draw_border_menu(){
     attroff(COLOR_PAIR(1));
 }
 int check_username(char *username){
+    rewind(users_ptr);
     char s[30];
     while(fgets(s, 30, users_ptr) != NULL){
+        s[strlen(s) - 1] = '\0';
         if (strcmp(s, username) == 0) return 0;
     }
     return 1;
@@ -144,7 +241,9 @@ void new_user_menu(){
                 clear();
                 attron(COLOR_PAIR(4));
                 attron(A_BLINK);
-                mvprintw(3, COLS / 2 - 25, "Password should be longer than 7 characters and should contain at least one number, one lowercase letter and one uppercase letter");
+                mvprintw(3, COLS / 2 - 15, "Password should be longer than 7 characters");
+                mvprintw(4, COLS / 2 - 15, "and should contain at least one number,");
+                mvprintw(5, COLS / 2 - 15, "lowercase letter and one uppercase letter");
                 attroff(COLOR_PAIR(4));
                 attroff(A_BLINK);
                 refresh();
@@ -187,6 +286,7 @@ void new_user_menu(){
     attroff(COLOR_PAIR(2));
     noecho();
     add_user(username, password, email);
+    clear();
     menus();
 }
 
@@ -290,7 +390,7 @@ void menus(){
                 return;
             }
             else if (curmenu == 1){
-                // login_menu();
+                login_menu();
                 return;
             }
             else if (curmenu == 2){
@@ -319,13 +419,13 @@ void menus(){
 }
 void open_files(){
     users_ptr = fopen("users.txt", "a+");
-    levels_ptr = fopen("levels.txt", "a+");
+    scores_ptr = fopen("levels.txt", "a+");
     passwords_ptr = fopen("passwords.txt", "a+");
     emails_ptr = fopen("emails.txt", "a+");
 }
 void close_files(){
     fclose(users_ptr);
-    fclose(levels_ptr);
+    fclose(scores_ptr);
     fclose(passwords_ptr);
     fclose(emails_ptr);
 }
