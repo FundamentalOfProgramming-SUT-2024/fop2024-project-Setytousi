@@ -3,6 +3,7 @@
 #include <ncurses.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 int USERNUMBER;
 FILE *users_ptr, *emails_ptr, *passwords_ptr, *scores_ptr, *golds_ptr, *games_ptr, *register_times_ptr;
@@ -142,10 +143,22 @@ int countlines(FILE* file){
 }
 void add_user(char *username, char *password, char *email){
     USERNUMBER = countlines(users_ptr);
+    fseek(emails_ptr, 0, SEEK_END);
+    fseek(passwords_ptr, 0, SEEK_END);
+    fseek(scores_ptr, 0, SEEK_END);
+    fseek(users_ptr, 0, SEEK_END);
+    fseek(golds_ptr, 0, SEEK_END);
+    fseek(games_ptr, 0, SEEK_END);
+    fseek(register_times_ptr, 0, SEEK_END);
     fprintf(users_ptr, "%s\n", username);
     fprintf(passwords_ptr, "%s\n", password);
     fprintf(emails_ptr, "%s\n", email);
     fprintf(scores_ptr, "%d\n", 0);
+    fprintf(golds_ptr, "%d\n", 0);
+    fprintf(games_ptr, "%d\n", 0);
+    time_t t;
+    time(&t);
+    fprintf(register_times_ptr, "%ld\n", t);
     close_files();
     open_files();
 }
@@ -419,13 +432,19 @@ void menus(){
 }
 void open_files(){
     users_ptr = fopen("users.txt", "a+");
-    scores_ptr = fopen("levels.txt", "a+");
+    scores_ptr = fopen("scores.txt", "a+");
     passwords_ptr = fopen("passwords.txt", "a+");
     emails_ptr = fopen("emails.txt", "a+");
+    golds_ptr = fopen("golds.txt", "a+");
+    games_ptr = fopen("gmaes.txt", "a+");
+    register_times_ptr = fopen("register_times.txt", "a+");
 }
 void close_files(){
     fclose(users_ptr);
     fclose(scores_ptr);
     fclose(passwords_ptr);
     fclose(emails_ptr);
+    fclose(golds_ptr);
+    fclose(games_ptr);
+    fclose(register_times_ptr);
 }
