@@ -4,9 +4,11 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <locale.h>
 
-int USERNUMBER;
+int USERNUMBER = -1;
 FILE *users_ptr, *emails_ptr, *passwords_ptr, *scores_ptr, *golds_ptr, *games_ptr, *register_times_ptr;
+int mark[1000];
 
 void draw_border_menu();
 int check_username(char *username);
@@ -21,9 +23,13 @@ int countlines(FILE *file);
 int find_username(char *username);
 void login_menu();
 int check_correct_password(char* password);
+void scoreboard();
+void printmx(int cnt, int line);
+void draw_border_scoreboard();
 
 
 int main(){
+    setlocale(LC_ALL, "");
     open_files();
     initscr();
     keypad(stdscr, TRUE);
@@ -35,6 +41,8 @@ int main(){
         init_pair(2, COLOR_YELLOW, COLOR_BLACK);
         init_pair(3, COLOR_YELLOW, COLOR_WHITE);
         init_pair(4, COLOR_RED, COLOR_BLACK);
+        init_pair(5, COLOR_WHITE, COLOR_BLACK);
+        init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
     }
     else return 0;
     menus();
@@ -175,6 +183,19 @@ void draw_border_menu(){
     refresh();
     attroff(COLOR_PAIR(1));
 }
+void draw_border_scoreboard(){
+    attron(COLOR_PAIR(1));
+    for (int i = 0; i <= 30; i++){
+        mvprintw(i, COLS / 2 - 50, " ");
+        mvprintw(i, COLS / 2 + 50," ");
+    }
+    for (int i = COLS / 2 - 50; i <= COLS / 2 + 50; i++){
+        mvprintw(0, i," ");
+        mvprintw(30, i," ");
+    }
+    refresh();
+    attroff(COLOR_PAIR(1));
+}
 int check_username(char *username){
     rewind(users_ptr);
     char s[30];
@@ -302,7 +323,6 @@ void new_user_menu(){
     clear();
     menus();
 }
-
 void menus(){
     clear();
     int curmenu = 0;
@@ -412,7 +432,7 @@ void menus(){
                 return;
             }
             else if (curmenu == 3){
-                // scoreboard();
+                scoreboard();
                 return;
             }
             else{
@@ -448,3 +468,82 @@ void close_files(){
     fclose(games_ptr);
     fclose(register_times_ptr);
 }
+void scoreboard(){
+    clear();
+    for (int i = 0; i < 1000; i++) mark[i] = 0;
+    int cnt = 0;
+    draw_border_scoreboard();
+    attron(COLOR_PAIR(2));
+    attron(A_BOLD);
+    mvprintw(1, COLS / 2 - 7, "SCOREBOARD");
+    attroff(A_BOLD);
+    attroff(COLOR_PAIR(2));
+    for (int i = 0; i < 10; i++){
+        printmx(cnt, cnt % 10 + 3);
+        cnt++;
+    }
+    refresh();
+}
+void printmx(int cnt, int line){
+    int mx = -1;
+    int total = countlines(users_ptr);
+    if (cnt >= total) return;
+    rewind(scores_ptr); rewind(users_ptr); rewind(golds_ptr); rewind(games_ptr); rewind(register_times_ptr);
+    int score = 0, golds = 0, games = 0;
+    int scorex = 0, goldsx = 0, gamesx = 0, ind = 0;
+    time_t tx = 0;
+    time_t t = 0;
+    time_t cur_t;
+    time(&cur_t);
+    char user[30], userx[30];
+    for (int i = 0; i < total; i++){
+        fgets(user, 30, users_ptr);
+        user[strlen(user) - 1] = '\0';
+        fscanf(scores_ptr, "%d\n", &score);
+        fscanf(golds_ptr, "%d\n", &golds);
+        fscanf(games_ptr, "%d\n", &games);
+        fscanf(scores_ptr, "%d\n", &score);
+        fscanf(register_times_ptr, "%ld\n", &t);
+        if (!mark[i] && score > mx){
+            mx = score;
+            scorex = score, goldsx = golds, gamesx = games, tx = t;
+            strcpy(userx, user);
+            ind = i;
+        }
+    }
+    t = difftime(cur_t, tx);
+    if (ind == USERNUMBER){
+        attron(A_BOLD);
+    }
+    if (cnt == 0){
+        mvprintw(line, COLS / 2 - 48, "GOAT 🥇");
+        attron(COLOR_PAIR(6));
+        mvprintw(line, COLS / 2 - 41, "%d: %s Score: %d Golds: %d Games: %d Time since registered: %ld days %ld hours %ld minutes", cnt + 1, userx, scorex, goldsx, gamesx, 
+        t / 86400, (t % 86400) / 3600 , ((t % 86400) % 3600) / 60);
+        attroff(COLOR_PAIR(6));
+    }
+    else if (cnt == 1){
+        mvprintw(line, COLS / 2 - 43, "🥈");
+        attron(COLOR_PAIR(6));
+        mvprintw(line, COLS / 2 - 41, "%d: %s Score: %d Golds: %d Games: %d Time since registered: %ld days %ld hours %ld minutes", cnt + 1, userx, scorex, goldsx, gamesx, 
+        t / 86400, (t % 86400) / 3600 , ((t % 86400) % 3600) / 60);
+        attroff(COLOR_PAIR(6));
+    }
+    else if (cnt == 2){
+        mvprintw(line, COLS / 2 - 43, "🥉");
+        attron(COLOR_PAIR(6));
+        mvprintw(line, COLS / 2 - 41, "%d: %s Score: %d Golds: %d Games: %d Time since registered: %ld days %ld hours %ld minutes", cnt + 1, userx, scorex, goldsx, gamesx, 
+        t / 86400, (t % 86400) / 3600 , ((t % 86400) % 3600) / 60);
+        attroff(COLOR_PAIR(6));
+    }
+    else{
+        attron(COLOR_PAIR(5));
+        mvprintw(line, COLS / 2 - 41, "%d: %s Score: %d Golds: %d Games: %d Time since registered: %ld days %ld hours %ld minutes", cnt + 1, userx, scorex, goldsx, gamesx, 
+        t / 86400, (t % 86400) / 3600 , ((t % 86400) % 3600) / 60);
+        attroff(COLOR_PAIR(5));
+    }
+    if (ind == USERNUMBER){
+        attroff(A_BOLD);
+    }
+}
+
