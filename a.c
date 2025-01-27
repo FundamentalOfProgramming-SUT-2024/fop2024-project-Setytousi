@@ -5,6 +5,8 @@
 #include <string.h>
 #include <time.h>
 #include <locale.h>
+#include <ncurses.h>
+
 
 int USERNUMBER = -1;
 FILE *users_ptr, *emails_ptr, *passwords_ptr, *scores_ptr, *golds_ptr, *games_ptr, *register_times_ptr;
@@ -26,6 +28,7 @@ int check_correct_password(char* password);
 void scoreboard();
 void printmx(int cnt, int line);
 void draw_border_scoreboard();
+void pregame();
 
 
 int main(){
@@ -46,6 +49,7 @@ int main(){
     }
     else return 0;
     menus();
+    pregame();
     while(1){
 
     }
@@ -326,7 +330,7 @@ void new_user_menu(){
 void menus(){
     clear();
     int curmenu = 0;
-    int total_menus = 5;
+    int total_menus = 4;
     while(1){
         clear();
         attron(A_BOLD);
@@ -382,28 +386,14 @@ void menus(){
         if (curmenu == 3){
             attron(COLOR_PAIR(3));
             attron(A_BLINK);
-            mvprintw(9, (COLS - 10) / 2, "Scoreboard");
+            mvprintw(9, (COLS - 10) / 2, "Exit");
             attroff(COLOR_PAIR(3));
             attroff(A_BLINK);
         }
         else{
             attron(COLOR_PAIR(2));
             attron(A_BLINK);
-            mvprintw(9, (COLS - 10) / 2, "Scoreboard");
-            attroff(COLOR_PAIR(2));
-            attroff(A_BLINK);
-        }
-        if (curmenu == 4){
-            attron(COLOR_PAIR(3));
-            attron(A_BLINK);
-            mvprintw(10, (COLS - 10) / 2, "Exit");
-            attroff(COLOR_PAIR(3));
-            attroff(A_BLINK);
-        }
-        else{
-            attron(COLOR_PAIR(2));
-            attron(A_BLINK);
-            mvprintw(10, (COLS - 10) / 2, "Exit");
+            mvprintw(9, (COLS - 10) / 2, "Exit");
             attroff(COLOR_PAIR(2));
             attroff(A_BLINK);
         }
@@ -429,10 +419,6 @@ void menus(){
             else if (curmenu == 2){
                 USERNUMBER = -1;
                 clear();
-                return;
-            }
-            else if (curmenu == 3){
-                scoreboard();
                 return;
             }
             else{
@@ -477,12 +463,16 @@ void scoreboard(){
     attron(A_BOLD);
     mvprintw(1, COLS / 2 - 7, "SCOREBOARD");
     attroff(A_BOLD);
+    mvprintw(2, COLS / 2 - 12, "press any key to continue");
     attroff(COLOR_PAIR(2));
     for (int i = 0; i < 10; i++){
-        printmx(cnt, cnt % 10 + 3);
+        printmx(cnt, cnt % 10 + 5);
         cnt++;
     }
     refresh();
+    getch();
+    clear();
+    pregame();
 }
 void printmx(int cnt, int line){
     int mx = -1;
@@ -546,4 +536,150 @@ void printmx(int cnt, int line){
         attroff(A_BOLD);
     }
 }
-
+void pregame(){
+    clear();
+    int curmenu = 0;
+    int total_menus = 6;
+    while(1){
+        clear();
+        attron(A_BOLD);
+        attron(A_BLINK);
+        attron(COLOR_PAIR(2));
+        mvprintw(4, (COLS - 5) / 2, "Game Menu");
+        attroff(A_BOLD);
+        attroff(A_BLINK);
+        attroff(COLOR_PAIR(2));
+        draw_border_menu();
+        if (curmenu == 0){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 10) / 2, "New Game");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 10) / 2, "New Game");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 1){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 10) / 2, "Resume Game");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 10) / 2, "Resume Game");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 2){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 10) / 2, "Scoreboard");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 10) / 2, "Scoreboard");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 3){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 10) / 2, "Settings");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 10) / 2, "Settings");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 4){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(10, (COLS - 10) / 2, "Profile");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(10, (COLS - 10) / 2, "Profile");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 5){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(11, (COLS - 10) / 2, "Exit");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(11, (COLS - 10) / 2, "Exit");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            if (curmenu == 0){
+                clear();
+                // new_game();
+                return;
+            }
+            else if (curmenu == 1){
+                // resume_game();
+                return;
+            }
+            else if (curmenu == 2){
+                clear();
+                scoreboard();
+                return;
+            }
+            else if (curmenu == 3){
+                clear();
+                // settings();
+                return;
+            }
+            else if (curmenu == 4){
+                clear();
+                // profile();
+                return;
+            }
+            else{
+                endwin();
+                exit(0);
+            }
+        }
+        else{
+            attron(COLOR_PAIR(4));
+            mvprintw(1, COLS / 2 - 29, "Invalid Key !");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(4));
+        }
+        refresh();
+    }
+}
