@@ -39,6 +39,7 @@ typedef struct{
 
 
 room_struct pre_defined_rooms[10];
+corridor_struct pre_defined_corridors[10][10];
 
 
 void draw_border_menu();
@@ -96,7 +97,7 @@ void make_default_rooms(){
     room6.x2 = 14, room6.y2 = 20;
     room6.number_of_doors = 3;
     room6.doors_x[0] = 13, room6.doors_x[1] = 14, room6.doors_x[2] = 10;
-    room6.doors_y[0] = 16, room6.doors_y[1] = 16, room6.doors_y[2] = 20;
+    room6.doors_y[0] = 16, room6.doors_y[1] = 17, room6.doors_y[2] = 20;
     room_struct room7;
     room7.x1 = 23; room7.y1 = 20;
     room7.x2 = 28, room7.y2 = 25;
@@ -115,8 +116,60 @@ void make_default_rooms(){
     room9.number_of_doors = 3;
     room9.doors_x[0] = 11, room9.doors_x[1] = 18, room9.doors_x[2] = 18;
     room9.doors_y[0] = 26, room9.doors_y[1] = 27, room9.doors_y[2] = 30;
+    pre_defined_rooms[0] = room1, pre_defined_rooms[1] = room2, pre_defined_rooms[2] = room3, pre_defined_rooms[3] = room4;
+    pre_defined_rooms[4] = room5, pre_defined_rooms[5] = room6, pre_defined_rooms[6] = room7, pre_defined_rooms[7] = room8;
+    pre_defined_rooms[8] = room9;
 }
-
+void make_default_corridors(){
+    corridor_struct c;
+    c.sz = 22;
+    for (int i = 0; i <= 14; i++) c.x[i] = 4;
+    for (int i = 0; i <= 14; i++) c.y[i] = 21 - i;
+    for (int i = 15; i <= 21; i++) c.x[i] = i - 10;
+    for (int i = 15; i <= 21; i++) c.y[i] = 7;
+    pre_defined_corridors[0][1] = pre_defined_corridors[1][0] = c;
+    c.sz = 5;
+    c.x[0] = 6, c.x[1] = 6, c.x[2] = 7, c.x[3] = 8, c.x[4] = 9;
+    c.y[0] = 21, c.y[1] = 20, c.y[2] = 20, c.y[3] = 20, c.y[4] = 20;
+    pre_defined_corridors[0][5] = pre_defined_corridors[5][0] = c;
+    c.sz = 4;
+    for (int i = 0; i < 4; i++) c.x[i] = 7 + i, c.y[i] = 26;
+    pre_defined_corridors[0][8] = pre_defined_corridors[8][0] = c;
+    c.sz = 17;
+    for (int i = 0; i < 17; i++) c.x[i] = 18 + i, c.y[i] = 4;
+    pre_defined_corridors[1][3] = pre_defined_corridors[3][1] = c;
+    c.sz = 6;
+    for (int i = 0; i < 6; i++) c.x[i] = 13, c.y[i] = 10 + i;
+    pre_defined_corridors[1][5] = pre_defined_corridors[5][1] = c;
+    c.sz = 7;
+    for (int i = 0; i < 7; i++) c.x[i] = 28 + i, c.y[i] = 7;
+    pre_defined_corridors[2][3] = pre_defined_corridors[3][2] = c;
+    c.sz = 11;
+    for (int i = 0; i < 5; i++) c.x[i] = 20 - i, c.y[i] = 12;
+    for (int i = 5; i < 11; i++) c.x[i] = 15, c.y[i] = i + 7;
+    pre_defined_corridors[2][5] = pre_defined_corridors[5][2] = c;
+    c.sz = 7;
+    for (int i = 0; i < 7; i++) c.x[i] = 24, c.y[i] = 13 + i;
+    pre_defined_corridors[2][6] = pre_defined_corridors[6][2] = c;
+    c.sz = 6;
+    for (int i = 0; i < 6; i++) c.x[i] = 37, c.y[i] = 8 + i;
+    pre_defined_corridors[3][4] = pre_defined_corridors[4][3] = c;
+    c.sz = 5;
+    for (int i = 0; i < 5; i++) c.x[i] = 32 - i, c.y[i] = 19;
+    pre_defined_corridors[4][6] = pre_defined_corridors[6][4] = c;
+    c.sz = 16;
+    for (int i = 0; i <= 8; i++) c.x[i] = 36, c.y[i] = 21 + i;
+    for (int i = 9; i <= 15; i++) c.x[i] = 44 - i, c.y[i] = 29;
+    pre_defined_corridors[4][7] = pre_defined_corridors[7][4] = c;
+    c.sz = 22;
+    for (int i = 0; i <= 6; i++) c.x[i] = 34, c.y[i] = 21 + i;
+    for (int i = 7; i <= 21; i++) c.x[i] = 40 - i, c.y[i] = 27;
+    pre_defined_corridors[4][8] = pre_defined_corridors[8][4] = c;
+    c.sz = 2;
+    c.x[0] = 27, c.x[1] = 27;
+    c.y[0] = 26, c.y[1] = 27;
+    pre_defined_corridors[6][7] = pre_defined_corridors[7][6] = c;
+}
 
 
 
@@ -124,6 +177,7 @@ void make_default_rooms(){
 
 int main(){
     make_default_rooms();
+    make_default_corridors();
     setlocale(LC_ALL, "");
     open_files();
     initscr();
