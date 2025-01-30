@@ -29,6 +29,7 @@ void scoreboard();
 void printmx(int cnt, int line);
 void draw_border_scoreboard();
 void pregame();
+void profile();
 
 
 int main(){
@@ -665,7 +666,7 @@ void pregame(){
             }
             else if (curmenu == 4){
                 clear();
-                // profile();
+                profile();
                 return;
             }
             else{
@@ -682,4 +683,52 @@ void pregame(){
         }
         refresh();
     }
+}
+void profile(){
+    clear();
+    draw_border_menu();
+    if (USERNUMBER == -1){
+        attron(COLOR_PAIR(4));
+        mvprintw(5, COLS / 2 - 20, "GUEST USER! PLEASE LOGIN TO VIEW PROFILE");
+        refresh();
+        sleep(2);
+        attroff(COLOR_PAIR(4));
+        menus();
+        return;
+    }
+    attron(COLOR_PAIR(2));
+    mvprintw(2, COLS / 2 - 12, "press any key to continue");
+    attroff(COLOR_PAIR(2));
+    attron(COLOR_PAIR(5));
+    attron(A_BOLD);
+    rewind(users_ptr);
+    char s[30];
+    for (int i = 0; i <= USERNUMBER; i++){
+        fgets(s, 30, users_ptr);
+    }
+    mvprintw(5, COLS / 2 - 10, "USER: %s", s);
+    rewind(scores_ptr);
+    int num = 0;
+    for (int i = 0; i <= USERNUMBER; i++){
+        fscanf(scores_ptr, "%d", &num);
+    }
+    mvprintw(6, COLS / 2 - 10, "SCORE: %d", num);
+    rewind(golds_ptr);
+    num = 0;
+    for (int i = 0; i <= USERNUMBER; i++){
+        fscanf(golds_ptr, "%d", &num);
+    }
+    mvprintw(7, COLS / 2 - 10, "GOLDS: %d", num);
+    rewind(games_ptr);
+    num = 0;
+    for (int i = 0; i <= USERNUMBER; i++){
+        fscanf(games_ptr, "%d", &num);
+    }
+    mvprintw(8, COLS / 2 - 10, "GAMES PLAYED: %d", num);
+    attroff(COLOR_PAIR(5));
+    attroff(A_BOLD);
+    refresh();
+    getch();
+    clear();
+    pregame();
 }
