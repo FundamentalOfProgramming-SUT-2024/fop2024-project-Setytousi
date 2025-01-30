@@ -12,6 +12,35 @@ int USERNUMBER = -1;
 FILE *users_ptr, *emails_ptr, *passwords_ptr, *scores_ptr, *golds_ptr, *games_ptr, *register_times_ptr;
 int mark[1000];
 
+
+typedef struct{
+    int sz;
+    int x[30];
+    int y[30];
+}corridor_struct;
+typedef struct{
+    int x1, y1, x2, y2;
+    int number_of_doors;
+    int doors_x[10];
+    int doors_y[10];
+}room_struct;
+typedef struct{
+    int number_of_rooms;
+    int rooms[10];
+}level_struct;
+typedef struct{
+    int x, y;
+}player_struct;
+typedef struct{
+    player_struct player;
+    int number_of_levels;
+    level_struct levels[10];
+}game_struct;
+
+
+room_struct pre_defined_rooms[10];
+
+
 void draw_border_menu();
 int check_username(char *username);
 int check_password(char *password);
@@ -30,9 +59,71 @@ void printmx(int cnt, int line);
 void draw_border_scoreboard();
 void pregame();
 void profile();
+void new_game();
+void make_default_rooms(){
+    room_struct room1;
+    room1.x1 = 2; room1.y1 = 22;
+    room1.x2 = 6, room1.y2 = 26;
+    room1.number_of_doors = 3;
+    room1.doors_x[0] = 4, room1.doors_x[1] = 6, room1.doors_x[2] = 6;
+    room1.doors_y[0] = 22, room1.doors_y[1] = 22, room1.doors_y[2] = 26;
+    room_struct room2;
+    room2.x1 = 12; room2.y1 = 4;
+    room2.x2 = 17, room2.y2 = 9;
+    room2.number_of_doors = 3;
+    room2.doors_x[0] = 17, room2.doors_x[1] = 12, room2.doors_x[2] = 13;
+    room2.doors_y[0] = 4, room2.doors_y[1] = 7, room2.doors_y[2] = 9;
+    room_struct room3;
+    room3.x1 = 21; room3.y1 = 6;
+    room3.x2 = 27, room3.y2 = 12;
+    room3.number_of_doors = 3;
+    room3.doors_x[0] = 27, room3.doors_x[1] = 21, room3.doors_x[2] = 24;
+    room3.doors_y[0] = 7, room3.doors_y[1] = 12, room3.doors_y[2] = 12;
+    room_struct room4;
+    room4.x1 = 35; room4.y1 = 4;
+    room4.x2 = 38, room4.y2 = 7;
+    room4.number_of_doors = 3;
+    room4.doors_x[0] = 35, room4.doors_x[1] = 35, room4.doors_x[2] = 37;
+    room4.doors_y[0] = 4, room4.doors_y[1] = 7, room4.doors_y[2] = 7;
+    room_struct room5;
+    room5.x1 = 33; room5.y1 = 14;
+    room5.x2 = 39, room5.y2 = 20;
+    room5.number_of_doors = 4;
+    room5.doors_x[0] = 37, room5.doors_x[1] = 33, room5.doors_x[2] = 34, room5.doors_x[3] = 36;
+    room5.doors_y[0] = 14, room5.doors_y[1] = 19, room5.doors_y[2] = 20, room5.doors_y[3] = 20;
+    room_struct room6;
+    room6.x1 = 10; room6.y1 = 16;
+    room6.x2 = 14, room6.y2 = 20;
+    room6.number_of_doors = 3;
+    room6.doors_x[0] = 13, room6.doors_x[1] = 14, room6.doors_x[2] = 10;
+    room6.doors_y[0] = 16, room6.doors_y[1] = 16, room6.doors_y[2] = 20;
+    room_struct room7;
+    room7.x1 = 23; room7.y1 = 20;
+    room7.x2 = 28, room7.y2 = 25;
+    room7.number_of_doors = 3;
+    room7.doors_x[0] = 24, room7.doors_x[1] = 28, room7.doors_x[2] = 27;
+    room7.doors_y[0] = 20, room7.doors_y[1] = 20, room7.doors_y[2] = 25;
+    room_struct room8;
+    room8.x1 = 25; room8.y1 = 28;
+    room8.x2 = 28, room8.y2 = 31;
+    room8.number_of_doors = 3;
+    room8.doors_x[0] = 27, room8.doors_x[1] = 28, room8.doors_x[2] = 25;
+    room8.doors_y[0] = 28, room8.doors_y[1] = 29, room8.doors_y[2] = 30;
+    room_struct room9;
+    room9.x1 = 11; room9.y1 = 25;
+    room9.x2 = 18, room9.y2 = 32;
+    room9.number_of_doors = 3;
+    room9.doors_x[0] = 11, room9.doors_x[1] = 18, room9.doors_x[2] = 18;
+    room9.doors_y[0] = 26, room9.doors_y[1] = 27, room9.doors_y[2] = 30;
+}
+
+
+
+
 
 
 int main(){
+    make_default_rooms();
     setlocale(LC_ALL, "");
     open_files();
     initscr();
@@ -56,6 +147,20 @@ int main(){
     }
     close_files();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int check_correct_password(char* password){
     rewind(passwords_ptr);
     char s[30];
@@ -731,4 +836,7 @@ void profile(){
     getch();
     clear();
     pregame();
+}
+void new_game(){
+    
 }
