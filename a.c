@@ -26,7 +26,9 @@ typedef struct{
 }room_struct;
 typedef struct{
     int number_of_rooms;
-    int rooms[10];
+    room_struct rooms[10];
+    int stairs_x;
+    int stairs_y;
 }level_struct;
 typedef struct{
     int x, y;
@@ -40,6 +42,7 @@ typedef struct{
 
 room_struct pre_defined_rooms[10];
 corridor_struct pre_defined_corridors[10][10];
+level_struct levels[5];
 
 
 void draw_border_menu();
@@ -170,7 +173,7 @@ void make_default_corridors(){
     c.y[0] = 26, c.y[1] = 27;
     pre_defined_corridors[6][7] = pre_defined_corridors[7][6] = c;
 }
-
+void make_levels();
 
 
 
@@ -196,6 +199,7 @@ int main(){
     else return 0;
     menus();
     pregame();
+    make_levels();
     while(1){
 
     }
@@ -891,6 +895,26 @@ void profile(){
     clear();
     pregame();
 }
-void new_game(){
-    
+void make_levels(){
+    for (int i = 0; i < 5; i++){
+        level_struct l;
+        l.number_of_rooms = rand() % 4 + 6;
+        int mark[9];
+        for (int i = 0; i < 9; i++) mark[i] = 0;
+        for (int i = 0; i < l.number_of_rooms; i++){
+            int x = rand() % 9;
+            while(mark[x]){
+                x = rand() % 9;
+            }
+            mark[x] = 1;
+            l.rooms[i] = pre_defined_rooms[x];
+        }
+        if (i == 4) continue;
+        int x = rand() % 9;
+        while(!mark[x]){
+            x = rand() % 9;
+        }
+        l.stairs_x = pre_defined_rooms[x].x1 + 1;
+        l.stairs_y = pre_defined_rooms[x].y1 + 1;
+    }
 }
