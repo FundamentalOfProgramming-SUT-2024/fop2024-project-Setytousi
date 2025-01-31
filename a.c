@@ -25,6 +25,8 @@ typedef struct{
     int doors_y[10];
     int vis;
     int other_room[10];
+    int in[30][30];
+    //0 = empty 1 = stairs
 }room_struct;
 typedef struct{
     int number_of_rooms;
@@ -145,6 +147,13 @@ void make_default_rooms(){
     pre_defined_rooms[7] = room8;
     pre_defined_rooms[8] = room9;
     for (int i = 0; i < 9; i++) pre_defined_rooms[i].vis = 0;
+    for (int i = 0; i < 9; i++){
+        for (int x = 0; x < 30; x++){
+            for (int y = 0; y < 30; y++){
+                pre_defined_rooms[i].in[x][y] = 0;
+            }
+        }
+    }
 }
 void make_default_corridors(){
     for (int i = 0; i < 9; i++){
@@ -227,6 +236,9 @@ int inroom(int x, int y);
 void print_unders();
 void resume_game();
 void save_game();
+void move_player();
+int valid(int x, int y);
+void update_player_state();
 
 
 int main(){
@@ -249,13 +261,15 @@ int main(){
         init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
         init_pair(7, COLOR_YELLOW, COLOR_YELLOW);
         init_pair(8, COLOR_GREEN, COLOR_BLACK);
+        init_pair(9, COLOR_MAGENTA, COLOR_BLACK);
     }
     else return 0;
     menus();
     pregame();
     while(1){
         print_game();
-        getch();
+        move_player();
+        update_player_state();
     }
     close_files();
 }
@@ -952,7 +966,6 @@ void profile(){
 void make_levels(){
     for (int le = 0; le < 5; le++){
         level_struct l;
-        /////
         l.number_of_rooms = 6;
         int mark[9];
         for (int i = 0; i < 9; i++) mark[i] = 0;
@@ -973,12 +986,10 @@ void make_levels(){
             else l.rooms[i] = pre_defined_rooms[x], l.room_numbers[i] = x;
         }
         if (le == 4) continue;
-        int x = rand() % 9;
-        while(!mark[x]){
-            x = rand() % 9;
-        }
-        l.stairs_x = pre_defined_rooms[x].x1 + 1;
-        l.stairs_y = pre_defined_rooms[x].y1 + 1;
+        int x = rand() % 6;
+        l.stairs_x = l.rooms[x].x1 + 1;
+        l.stairs_y = l.rooms[x].y1 + 1;
+        l.rooms[x].in[1][2] = 1;
         game.levels[le] = l;
         
     }
@@ -1042,6 +1053,7 @@ void print_rooms(){
         if (!l.rooms[i].vis) continue;
         int x1 = l.rooms[i].x1, y1 = l.rooms[i].y1;
         int x2 = l.rooms[i].x2, y2 = l.rooms[i].y2;
+
         attron(A_BOLD);
         attron(COLOR_PAIR(4));
         for (int x = x1; x <= x2; x++){
@@ -1061,13 +1073,20 @@ void print_rooms(){
         }
         attroff(COLOR_PAIR(2));
         attroff(A_BOLD);
-        attron(COLOR_PAIR(8));
         for (int x = x1 + 1; x < x2; x++){
             for (int y = y1 + 1; y < y2; y++){
-                mvprintw(y, x, ".");
+                if (l.rooms[i].in[x - x1][y - y1] == 1){
+                    attron(COLOR_PAIR(9));
+                    mvprintw(y, x, "S");
+                    attroff(COLOR_PAIR(9));
+                }
+                else{
+                    attron(COLOR_PAIR(8));
+                    mvprintw(y, x, ".");
+                    attroff(COLOR_PAIR(8));
+                }
             }
         }
-        attroff(COLOR_PAIR(8));
     }
     refresh();
 }
@@ -1102,8 +1121,8 @@ void print_game(){
     clear();
     draw_game_border();
     print_rooms();
-    print_player();
     print_corridors();
+    print_player();
     print_unders();
     refresh();
 }
@@ -1113,4 +1132,70 @@ void print_unders(){
     mvprintw(43, 30, "LEVEL:%d                   GOLDS:%d                   HEALTH:%d", game.level + 1, game.golds, game.health);
     attroff(COLOR_PAIR(2));
     attroff(A_BOLD);
+}
+int valid(int x, int y){
+    level_struct l = game.levels[game.level];
+    int inroom = 0;
+    for (int i = 0; i < l.number_of_rooms; i++){
+        bool check_door = 0;
+        for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+            if (x == l.rooms[i].doors_x[j] && y == l.rooms[i].doors_y[j]) check_door = 1;
+        }
+        if (check_door) return 1;
+        if ((x == l.rooms[i].x1 || x == l.rooms[i].x2) && l.rooms[i].y1 <= y && y <= l.rooms[i].y2) return 0;
+        if ((y == l.rooms[i].y1 || y == l.rooms[i].y2) && l.rooms[i].x1 <= x && x <= l.rooms[i].x2) return 0;
+        if (l.rooms[i].y1 <= y && y <= l.rooms[i].y2 && l.rooms[i].x1 <= x && x <= l.rooms[i].x2) inroom = 1;
+    }
+    if (inroom) return 1;
+    int mark[9];
+    for (int i = 0; i < 9; i++) mark[i] = 0;
+    for (int i = 0; i < l.number_of_rooms; i++){
+        mark[l.room_numbers[i]] = 1;
+    }
+    for (int i = 0; i < 9; i++){
+        for (int j = i + 1; j < 9; j++){
+            if (mark[i] && mark[j] && pre_defined_corridors[i][j].sz){
+                for (int k = 0; k < pre_defined_corridors[i][j].sz; k++){
+                    int xc = pre_defined_corridors[i][j].x[k], yc = pre_defined_corridors[i][j].y[k];
+                    if (x == xc && y == yc) return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+void move_player(){
+    noecho();
+    char ch = getch();
+    if (ch == 'y' && valid(game.player.x - 1, game.player.y - 1)){
+        game.player.x--, game.player.y--;
+    }
+    else if (ch == 'u' && valid(game.player.x + 1, game.player.y - 1)){
+        game.player.x++, game.player.y--;
+    }
+    else if (ch == 'b' && valid(game.player.x - 1, game.player.y + 1)){
+        game.player.x--, game.player.y++;
+    }
+    else if (ch == 'n' && valid(game.player.x + 1, game.player.y + 1)){
+        game.player.x++, game.player.y++;
+    }
+    else if (ch == 'h' && valid(game.player.x - 1, game.player.y)){
+        game.player.x--;
+    }
+    else if (ch == 'j' && valid(game.player.x, game.player.y - 1)){
+        game.player.y--;
+    }
+    else if (ch == 'k' && valid(game.player.x, game.player.y + 1)){
+        game.player.y++;
+    }
+    else if (ch == 'l' && valid(game.player.x + 1, game.player.y)){
+        game.player.x++;
+    }
+    else{
+        move_player();
+    }
+}
+void update_player_state(){
+    //new room
+    
 }
