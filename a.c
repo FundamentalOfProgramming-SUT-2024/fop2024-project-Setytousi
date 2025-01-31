@@ -15,18 +15,21 @@ int mark[1000];
 
 typedef struct{
     int sz;
-    int x[30];
-    int y[30];
+    int x[300];
+    int y[300];
 }corridor_struct;
 typedef struct{
     int x1, y1, x2, y2;
     int number_of_doors;
     int doors_x[10];
     int doors_y[10];
+    int vis;
+    int other_room[10];
 }room_struct;
 typedef struct{
     int number_of_rooms;
     room_struct rooms[10];
+    int room_numbers[10];
     int stairs_x;
     int stairs_y;
 }level_struct;
@@ -35,14 +38,18 @@ typedef struct{
 }player_struct;
 typedef struct{
     player_struct player;
-    int number_of_levels;
     level_struct levels[10];
+    int golds;
+    int score;
+    int level;
+    int health;
+    int vis_corridors[500][500];
 }game_struct;
 
 
 room_struct pre_defined_rooms[10];
 corridor_struct pre_defined_corridors[10][10];
-level_struct levels[5];
+game_struct game;
 
 
 void draw_border_menu();
@@ -66,119 +73,164 @@ void profile();
 void new_game();
 void make_default_rooms(){
     room_struct room1;
-    room1.x1 = 2; room1.y1 = 22;
-    room1.x2 = 6, room1.y2 = 26;
+    room1.x1 = 58; room1.y1 = 8;
+    room1.x2 = 75; room1.y2 = 16;
     room1.number_of_doors = 3;
-    room1.doors_x[0] = 4, room1.doors_x[1] = 6, room1.doors_x[2] = 6;
-    room1.doors_y[0] = 22, room1.doors_y[1] = 22, room1.doors_y[2] = 26;
+    room1.doors_x[0] = 58; room1.doors_x[1] = 69; room1.doors_x[2] = 75;
+    room1.doors_y[0] = 11; room1.doors_y[1] = 16; room1.doors_y[2] = 15;
+    room1.other_room[0] = 8, room1.other_room[1] = 3, room1.other_room[2] = 1;
     room_struct room2;
-    room2.x1 = 12; room2.y1 = 4;
-    room2.x2 = 17, room2.y2 = 9;
+    room2.x1 = 90; room2.y1 = 12;
+    room2.x2 = 110; room2.y2 = 20;
     room2.number_of_doors = 3;
-    room2.doors_x[0] = 17, room2.doors_x[1] = 12, room2.doors_x[2] = 13;
-    room2.doors_y[0] = 4, room2.doors_y[1] = 7, room2.doors_y[2] = 9;
+    room2.doors_x[0] = 90; room2.doors_x[1] = 110; room2.doors_x[2] = 110;
+    room2.doors_y[0] = 15; room2.doors_y[1] = 16; room2.doors_y[2] = 14;
+    room2.other_room[0] = 0, room2.other_room[1] = 4, room2.other_room[2] = 2;
     room_struct room3;
-    room3.x1 = 21; room3.y1 = 6;
-    room3.x2 = 27, room3.y2 = 12;
+    room3.x1 = 125; room3.y1 = 10;
+    room3.x2 = 145; room3.y2 = 18;
     room3.number_of_doors = 3;
-    room3.doors_x[0] = 27, room3.doors_x[1] = 21, room3.doors_x[2] = 24;
-    room3.doors_y[0] = 7, room3.doors_y[1] = 12, room3.doors_y[2] = 12;
+    room3.doors_x[0] = 125; room3.doors_x[1] = 141; room3.doors_x[2] = 145;
+    room3.doors_y[0] = 14; room3.doors_y[1] = 18; room3.doors_y[2] = 14;
+    room3.other_room[0] = 1, room3.other_room[1] = 7, room3.other_room[2] = 5;
     room_struct room4;
-    room4.x1 = 35; room4.y1 = 4;
-    room4.x2 = 38, room4.y2 = 7;
+    room4.x1 = 58; room4.y1 = 20;
+    room4.x2 = 84; room4.y2 = 28;
     room4.number_of_doors = 3;
-    room4.doors_x[0] = 35, room4.doors_x[1] = 35, room4.doors_x[2] = 37;
-    room4.doors_y[0] = 4, room4.doors_y[1] = 7, room4.doors_y[2] = 7;
+    room4.doors_x[0] = 69; room4.doors_x[1] = 78; room4.doors_x[2] = 84;
+    room4.doors_y[0] = 20; room4.doors_y[1] = 28; room4.doors_y[2] = 25;
+    room4.other_room[0] = 0, room4.other_room[1] = 6, room4.other_room[2] = 4;
     room_struct room5;
-    room5.x1 = 33; room5.y1 = 14;
-    room5.x2 = 39, room5.y2 = 20;
+    room5.x1 = 100; room5.y1 = 22;
+    room5.x2 = 125; room5.y2 = 30;
     room5.number_of_doors = 4;
-    room5.doors_x[0] = 37, room5.doors_x[1] = 33, room5.doors_x[2] = 34, room5.doors_x[3] = 36;
-    room5.doors_y[0] = 14, room5.doors_y[1] = 19, room5.doors_y[2] = 20, room5.doors_y[3] = 20;
+    room5.doors_x[0] = 100; room5.doors_x[1] = 121; room5.doors_x[2] = 125; room5.doors_x[3] = 115;
+    room5.doors_y[0] = 25; room5.doors_y[1] = 30; room5.doors_y[2] = 28; room5.doors_y[3] = 22;
+    room5.other_room[0] = 3, room5.other_room[1] = 7, room5.other_room[2] = 5, room5.other_room[3] = 1;
     room_struct room6;
-    room6.x1 = 10; room6.y1 = 16;
-    room6.x2 = 14, room6.y2 = 20;
+    room6.x1 = 150; room6.y1 = 24;
+    room6.x2 = 160; room6.y2 = 32;
     room6.number_of_doors = 3;
-    room6.doors_x[0] = 13, room6.doors_x[1] = 14, room6.doors_x[2] = 10;
-    room6.doors_y[0] = 16, room6.doors_y[1] = 17, room6.doors_y[2] = 20;
+    room6.doors_x[0] = 150; room6.doors_x[1] = 156; room6.doors_x[2] = 159;
+    room6.doors_y[0] = 28; room6.doors_y[1] = 24; room6.doors_y[2] = 24;
+    room6.other_room[0] = 4, room6.other_room[1] = 2, room6.other_room[2] = 8;
     room_struct room7;
-    room7.x1 = 23; room7.y1 = 20;
-    room7.x2 = 28, room7.y2 = 25;
+    room7.x1 = 70; room7.y1 = 33;
+    room7.x2 = 95; room7.y2 = 41;
     room7.number_of_doors = 3;
-    room7.doors_x[0] = 24, room7.doors_x[1] = 28, room7.doors_x[2] = 27;
-    room7.doors_y[0] = 20, room7.doors_y[1] = 20, room7.doors_y[2] = 25;
+    room7.doors_x[0] = 70; room7.doors_x[1] = 78; room7.doors_x[2] = 95;
+    room7.doors_y[0] = 37; room7.doors_y[1] = 33; room7.doors_y[2] = 39;
+    room7.other_room[0] = 8, room7.other_room[1] = 3, room7.other_room[2] = 7;
     room_struct room8;
-    room8.x1 = 25; room8.y1 = 28;
-    room8.x2 = 28, room8.y2 = 31;
+    room8.x1 = 110; room8.y1 = 35;
+    room8.x2 = 130; room8.y2 = 43;
     room8.number_of_doors = 3;
-    room8.doors_x[0] = 27, room8.doors_x[1] = 28, room8.doors_x[2] = 25;
-    room8.doors_y[0] = 28, room8.doors_y[1] = 29, room8.doors_y[2] = 30;
+    room8.doors_x[0] = 110; room8.doors_x[1] = 121; room8.doors_x[2] = 130;
+    room8.doors_y[0] = 39; room8.doors_y[1] = 35; room8.doors_y[2] = 38;
+    room8.other_room[0] = 6, room8.other_room[1] = 4, room8.other_room[2] = 2;
     room_struct room9;
-    room9.x1 = 11; room9.y1 = 25;
-    room9.x2 = 18, room9.y2 = 32;
+    room9.x1 = 25; room9.y1 = 5;
+    room9.x2 = 45; room9.y2 = 15;
     room9.number_of_doors = 3;
-    room9.doors_x[0] = 11, room9.doors_x[1] = 18, room9.doors_x[2] = 18;
-    room9.doors_y[0] = 26, room9.doors_y[1] = 27, room9.doors_y[2] = 30;
-    pre_defined_rooms[0] = room1, pre_defined_rooms[1] = room2, pre_defined_rooms[2] = room3, pre_defined_rooms[3] = room4;
-    pre_defined_rooms[4] = room5, pre_defined_rooms[5] = room6, pre_defined_rooms[6] = room7, pre_defined_rooms[7] = room8;
+    room9.doors_x[0] = 40; room9.doors_x[1] = 45; room9.doors_x[2] = 45;
+    room9.doors_y[0] = 15; room9.doors_y[1] = 11; room9.doors_y[2] = 6;
+    room9.other_room[0] = 6, room9.other_room[1] = 0, room9.other_room[2] = 5;
+    pre_defined_rooms[0] = room1;
+    pre_defined_rooms[1] = room2;
+    pre_defined_rooms[2] = room3;
+    pre_defined_rooms[3] = room4;
+    pre_defined_rooms[4] = room5;
+    pre_defined_rooms[5] = room6;
+    pre_defined_rooms[6] = room7;
+    pre_defined_rooms[7] = room8;
     pre_defined_rooms[8] = room9;
+    for (int i = 0; i < 9; i++) pre_defined_rooms[i].vis = 0;
 }
 void make_default_corridors(){
+    for (int i = 0; i < 9; i++){
+        for (int j = 0; j < 9; j++){
+            pre_defined_corridors[i][j].sz = 0;
+        }
+    }
     corridor_struct c;
-    c.sz = 22;
-    for (int i = 0; i <= 14; i++) c.x[i] = 4;
-    for (int i = 0; i <= 14; i++) c.y[i] = 21 - i;
-    for (int i = 15; i <= 21; i++) c.x[i] = i - 10;
-    for (int i = 15; i <= 21; i++) c.y[i] = 7;
+    c.sz = 14;
+    for (int i = 0; i <= 13; i++) c.x[i] = 76 + i; 
+    for (int i = 0; i <= 13; i++) c.y[i] = 15;      
     pre_defined_corridors[0][1] = pre_defined_corridors[1][0] = c;
-    c.sz = 5;
-    c.x[0] = 6, c.x[1] = 6, c.x[2] = 7, c.x[3] = 8, c.x[4] = 9;
-    c.y[0] = 21, c.y[1] = 20, c.y[2] = 20, c.y[3] = 20, c.y[4] = 20;
-    pre_defined_corridors[0][5] = pre_defined_corridors[5][0] = c;
-    c.sz = 4;
-    for (int i = 0; i < 4; i++) c.x[i] = 7 + i, c.y[i] = 26;
+
+    c.sz = 3;
+    for (int i = 0; i <= 2; i++) c.x[i] = 69;
+    for (int i = 0; i <= 2; i++) c.y[i] = 17 + i;
+    pre_defined_corridors[0][3] = pre_defined_corridors[3][0] = c;
+
+    c.sz = 12;
+    for (int i = 0; i <= 11; i++) c.x[i] = 46 + i;
+    for (int i = 0; i <= 11; i++) c.y[i] = 11;
     pre_defined_corridors[0][8] = pre_defined_corridors[8][0] = c;
-    c.sz = 17;
-    for (int i = 0; i < 17; i++) c.x[i] = 18 + i, c.y[i] = 4;
-    pre_defined_corridors[1][3] = pre_defined_corridors[3][1] = c;
-    c.sz = 6;
-    for (int i = 0; i < 6; i++) c.x[i] = 13, c.y[i] = 10 + i;
-    pre_defined_corridors[1][5] = pre_defined_corridors[5][1] = c;
-    c.sz = 7;
-    for (int i = 0; i < 7; i++) c.x[i] = 28 + i, c.y[i] = 7;
-    pre_defined_corridors[2][3] = pre_defined_corridors[3][2] = c;
-    c.sz = 11;
-    for (int i = 0; i < 5; i++) c.x[i] = 20 - i, c.y[i] = 12;
-    for (int i = 5; i < 11; i++) c.x[i] = 15, c.y[i] = i + 7;
+
+    c.sz = 14;
+    for (int i = 0; i <= 13; i++) c.x[i] = 111 + i, c.y[i] = 14;
+    pre_defined_corridors[1][2] = pre_defined_corridors[2][1] = c;
+
+    c.sz = 10;
+    for (int i = 0; i <= 4; i++) c.x[i] = 111 + i, c.y[i] = 16;
+    for (int i = 5; i <= 9; i++) c.x[i] = 115, c.y[i] = 17 + i - 5;
+    pre_defined_corridors[1][4] = pre_defined_corridors[4][1] = c;
+
+    c.sz = 21;
+    for (int i = 0; i <= 10; i++) c.x[i] = 146 + i, c.y[i] = 14;
+    for (int i = 11; i <= 20; i++) c.x[i] = 156, c.y[i] = 15 + i - 12;
     pre_defined_corridors[2][5] = pre_defined_corridors[5][2] = c;
-    c.sz = 7;
-    for (int i = 0; i < 7; i++) c.x[i] = 24, c.y[i] = 13 + i;
-    pre_defined_corridors[2][6] = pre_defined_corridors[6][2] = c;
-    c.sz = 6;
-    for (int i = 0; i < 6; i++) c.x[i] = 37, c.y[i] = 8 + i;
+
+    c.sz = 30;
+    for (int i = 0; i <= 19; i++) c.x[i] = 141, c.y[i] = 19 + i;
+    for (int i = 20; i <= 29; i++) c.x[i] = 141 - i + 19, c.y[i] = 38;
+    pre_defined_corridors[2][7] = pre_defined_corridors[7][2] = c;
+
+    c.sz = 15;
+    for (int i = 0; i <= 14; i++) c.x[i] = 85 + i, c.y[i] = 25;
     pre_defined_corridors[3][4] = pre_defined_corridors[4][3] = c;
-    c.sz = 5;
-    for (int i = 0; i < 5; i++) c.x[i] = 32 - i, c.y[i] = 19;
-    pre_defined_corridors[4][6] = pre_defined_corridors[6][4] = c;
-    c.sz = 16;
-    for (int i = 0; i <= 8; i++) c.x[i] = 36, c.y[i] = 21 + i;
-    for (int i = 9; i <= 15; i++) c.x[i] = 44 - i, c.y[i] = 29;
+
+    c.sz = 4;
+    for (int i = 0; i <= 3; i++) c.x[i] = 78, c.y[i] = 29 + i;
+    pre_defined_corridors[3][6] = pre_defined_corridors[6][3] = c;
+
+    c.sz = 24;
+    for (int i = 0; i <= 24; i++) c.x[i] = 126 + i, c.y[i] = 28;
+    pre_defined_corridors[4][5] = pre_defined_corridors[5][4] = c;
+
+    c.sz = 4;
+    for (int i = 0; i <= 3; i++) c.x[i] = 121, c.y[i] = 31 + i;
     pre_defined_corridors[4][7] = pre_defined_corridors[7][4] = c;
-    c.sz = 22;
-    for (int i = 0; i <= 6; i++) c.x[i] = 34, c.y[i] = 21 + i;
-    for (int i = 7; i <= 21; i++) c.x[i] = 40 - i, c.y[i] = 27;
-    pre_defined_corridors[4][8] = pre_defined_corridors[8][4] = c;
-    c.sz = 2;
-    c.x[0] = 27, c.x[1] = 27;
-    c.y[0] = 26, c.y[1] = 27;
+
+    c.sz = 131;
+    for (int i = 0; i <= 17; i++) c.x[i] = 159, c.y[i] = 24 - i - 1;
+    for (int i = 18; i <= 130; i++) c.x[i] = 159 - i + 17, c.y[i] = 6;
+    pre_defined_corridors[5][8] = pre_defined_corridors[8][5] = c;
+
+    c.sz = 14;
+    for (int i = 0; i <= 13; i++) c.x[i] = 96 + i, c.y[i] = 39;
     pre_defined_corridors[6][7] = pre_defined_corridors[7][6] = c;
+
+    c.sz = 51;
+    for (int i = 0; i <= 29; i++) c.x[i] = 70 - i - 1, c.y[i] = 37;
+    for (int i = 30; i <= 50; i++) c.x[i] = 40, c.y[i] = 37 - i - 1 + 30;
+    pre_defined_corridors[6][8] = pre_defined_corridors[8][6] = c;
 }
 void make_levels();
-
-
+void print_game();
+void draw_game_border();
+void print_player();
+void print_corridors();
+int dist(int x1, int y1, int x2, int y2);
+int inroom(int x, int y);
+void print_unders();
+void resume_game();
+void save_game();
 
 
 int main(){
+    srand(time(NULL));
     make_default_rooms();
     make_default_corridors();
     setlocale(LC_ALL, "");
@@ -195,13 +247,15 @@ int main(){
         init_pair(4, COLOR_RED, COLOR_BLACK);
         init_pair(5, COLOR_WHITE, COLOR_BLACK);
         init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(7, COLOR_YELLOW, COLOR_YELLOW);
+        init_pair(8, COLOR_GREEN, COLOR_BLACK);
     }
     else return 0;
     menus();
     pregame();
-    make_levels();
     while(1){
-
+        print_game();
+        getch();
     }
     close_files();
 }
@@ -810,11 +864,11 @@ void pregame(){
         else if (ch == 10){
             if (curmenu == 0){
                 clear();
-                // new_game();
+                new_game();
                 return;
             }
             else if (curmenu == 1){
-                // resume_game();
+                resume_game();
                 return;
             }
             else if (curmenu == 2){
@@ -896,25 +950,167 @@ void profile(){
     pregame();
 }
 void make_levels(){
-    for (int i = 0; i < 5; i++){
+    for (int le = 0; le < 5; le++){
         level_struct l;
-        l.number_of_rooms = rand() % 4 + 6;
+        /////
+        l.number_of_rooms = 6;
         int mark[9];
         for (int i = 0; i < 9; i++) mark[i] = 0;
+        int first_room = -1;
         for (int i = 0; i < l.number_of_rooms; i++){
             int x = rand() % 9;
             while(mark[x]){
                 x = rand() % 9;
             }
             mark[x] = 1;
-            l.rooms[i] = pre_defined_rooms[x];
+            if (le == 0 && first_room == -1){
+                first_room = x;
+                l.rooms[i] = pre_defined_rooms[x];
+                l.rooms[i].vis = 1;
+                l.room_numbers[i] = x;
+                game.player.x = l.rooms[i].x1 + 3, game.player.y = l.rooms[i].y1 + 3;
+            }
+            else l.rooms[i] = pre_defined_rooms[x], l.room_numbers[i] = x;
         }
-        if (i == 4) continue;
+        if (le == 4) continue;
         int x = rand() % 9;
         while(!mark[x]){
             x = rand() % 9;
         }
         l.stairs_x = pre_defined_rooms[x].x1 + 1;
         l.stairs_y = pre_defined_rooms[x].y1 + 1;
+        game.levels[le] = l;
+        
     }
+}
+void new_game(){
+    make_levels();
+    game.golds = 0;
+    game.score = 0;
+    game.level = 0;
+    game.health = 0;
+    for (int i = 0; i < 500; i++){
+        for (int j = 0; j < 500; j++){
+            game.vis_corridors[i][j] = 0;
+        }
+    }
+}
+void resume_game(){
+    char filename[100];
+    snprintf(filename, sizeof(filename), "%d.save", USERNUMBER);
+    FILE *file = fopen(filename, "rb");
+    size_t result = fread(&game, sizeof(game_struct), 1, file);
+    fclose(file);
+}
+void save_game() {
+    char filename[100];
+    snprintf(filename, sizeof(filename), "%d.save", USERNUMBER);
+    FILE *file = fopen(filename, "wb");
+    size_t result = fwrite(&game, sizeof(game_struct), 1, file);
+    fclose(file);
+}
+void draw_game_border(){
+    attron(COLOR_PAIR(2));
+    for (int i = 0; i <= 45; i++){
+        mvprintw(i, 20, ".");
+        mvprintw(i, 170, ".");
+    }
+    for (int i = 20; i <= 170; i++){
+        mvprintw(0, i,".");
+        mvprintw(45, i,".");
+    }
+    refresh();
+    attroff(COLOR_PAIR(2));
+}
+int inroom(int x, int y){
+    level_struct l = game.levels[game.level];
+    for (int i = 0; i < l.number_of_rooms; i++){
+        if (l.rooms[i].x1 <= x && x <= l.rooms[i].x2 && l.rooms[i].y1 <= y && y <= l.rooms[i].y2) return 1;
+    }
+    return 0;
+}
+void print_rooms(){
+    int cnt = game.level;
+    level_struct l = game.levels[cnt];
+    cnt = l.number_of_rooms;
+    int mark[9];
+    for (int i = 0; i < 9; i++) mark[i] = 0;
+    for (int i = 0; i < l.number_of_rooms; i++){
+        mark[l.room_numbers[i]] = 1;
+    }
+    for (int i = 0; i < cnt; i++){
+        if (!l.rooms[i].vis) continue;
+        int x1 = l.rooms[i].x1, y1 = l.rooms[i].y1;
+        int x2 = l.rooms[i].x2, y2 = l.rooms[i].y2;
+        attron(A_BOLD);
+        attron(COLOR_PAIR(4));
+        for (int x = x1; x <= x2; x++){
+            mvprintw(y1, x, "=");
+            mvprintw(y2, x, "=");
+        }
+        for (int y = y1; y <= y2; y++){
+            mvprintw(y, x1, "|");
+            mvprintw(y, x2, "|");
+        }
+        attroff(COLOR_PAIR(4));
+        attron(COLOR_PAIR(2));
+        for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+            if (mark[l.rooms[i].other_room[j]]){
+                mvprintw(l.rooms[i].doors_y[j], l.rooms[i].doors_x[j], "+");
+            }
+        }
+        attroff(COLOR_PAIR(2));
+        attroff(A_BOLD);
+        attron(COLOR_PAIR(8));
+        for (int x = x1 + 1; x < x2; x++){
+            for (int y = y1 + 1; y < y2; y++){
+                mvprintw(y, x, ".");
+            }
+        }
+        attroff(COLOR_PAIR(8));
+    }
+    refresh();
+}
+void print_player(){
+    mvprintw(game.player.y, game.player.x, "👾");
+    refresh();
+}
+int dist(int x1, int y1, int x2, int y2){
+    return abs(x1 - x2) + abs(y1 - y2);
+}
+void print_corridors(){
+    level_struct l = game.levels[game.level];
+    int mark[9];
+    for (int i = 0; i < 9; i++) mark[i] = 0;
+    for (int i = 0; i < l.number_of_rooms; i++){
+        mark[l.room_numbers[i]] = 1;
+    }
+    for (int i = 0; i < 9; i++){
+        for (int j = i + 1; j < 9; j++){
+            if (mark[i] && mark[j] && pre_defined_corridors[i][j].sz){
+                for (int k = 0; k < pre_defined_corridors[i][j].sz; k++){
+                    int x = pre_defined_corridors[i][j].x[k], y = pre_defined_corridors[i][j].y[k];
+                    if (game.vis_corridors[x][y] || (!inroom(game.player.x, game.player.y) && dist(game.player.x, game.player.y, x, y) <= 5)){
+                        mvprintw(y, x, "#");
+                    }
+                }
+            }
+        }
+    }
+}
+void print_game(){
+    clear();
+    draw_game_border();
+    print_rooms();
+    print_player();
+    print_corridors();
+    print_unders();
+    refresh();
+}
+void print_unders(){
+    attron(COLOR_PAIR(2));
+    attron(A_BOLD);
+    mvprintw(43, 30, "LEVEL:%d                   GOLDS:%d                   HEALTH:%d", game.level + 1, game.golds, game.health);
+    attroff(COLOR_PAIR(2));
+    attroff(A_BOLD);
 }
