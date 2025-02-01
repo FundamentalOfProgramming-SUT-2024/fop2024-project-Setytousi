@@ -27,7 +27,10 @@ typedef struct{
     int other_room[10];
     int in[30][30];
     int secret_door[10];
-    //0 = empty 1 = stairs
+    int password_door[10];
+    int open_password_door[10];
+    int password;
+    //0 = empty 1 = stairs 2 = password generator
 }room_struct;
 typedef struct{
     int number_of_rooms;
@@ -159,6 +162,9 @@ void make_default_rooms(){
     for (int i = 0; i < 9; i++){
         for (int j = 0; j < 10; j++){
             pre_defined_rooms[i].secret_door[j] = 0;
+            pre_defined_rooms[i].password_door[j] = 0;
+            pre_defined_rooms[i].open_password_door[j] = 0;
+            pre_defined_rooms[i].password = 0;
         }
     }
 }
@@ -276,6 +282,9 @@ int main(){
         init_pair(11, 254, 254);
         init_pair(12, 46, COLOR_BLACK); //light green on black
         init_pair(13, 214, COLOR_BLACK); //light Orange on black
+        init_pair(14, 81, COLOR_BLACK); //light cyan
+        init_pair(15, 214, COLOR_YELLOW); //light orange on yellow
+        init_pair(16, COLOR_RED, COLOR_YELLOW);
     }
     else return 0;
     menus();
@@ -1036,9 +1045,42 @@ void make_secret_doors(){
         }
     }
 }
+void make_password_doors(){
+    for (int le = 0; le < 5; le++){
+        level_struct l = game.levels[le];
+        int mark[9];
+        for (int i = 0; i < 9; i++) mark[i] = 0;
+        for (int i = 0; i < l.number_of_rooms; i++){
+            mark[l.room_numbers[i]] = 1;
+        }
+        for (int i = 0; i < l.number_of_rooms; i++){
+            int cnt = 0;
+            for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+                if (mark[l.rooms[i].other_room[j]]){
+                   cnt++;
+                }
+            }
+            for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+                if (mark[l.rooms[i].other_room[j]]){
+                    int x = rand() % 5;
+                    if (x == 0){
+                        if (!game.levels[le].rooms[i].secret_door[j]){
+                            game.levels[le].rooms[i].password_door[j] = 1;
+                            int x = game.levels[le].rooms[i].x1, y = game.levels[le].rooms[i].y1;
+                            int x2 = game.levels[le].rooms[i].x2, y2 = game.levels[le].rooms[i].y2;
+                            game.levels[le].rooms[i].in[x2 - 1 - x][y2 - 1 - y] = 2;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 void new_game(){
     make_levels();
     make_secret_doors();
+    make_password_doors();
     game.golds = 0;
     game.score = 0;
     game.level = 0;
@@ -1110,6 +1152,19 @@ void print_rooms(){
         }
         attroff(COLOR_PAIR(4));
         for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+            if (mark[l.rooms[i].other_room[j]] && l.rooms[i].password_door[j]){
+                if (l.rooms[i].open_password_door[j]){
+                    attron(COLOR_PAIR(8));
+                    mvprintw(l.rooms[i].doors_y[j], l.rooms[i].doors_x[j], "@");
+                    attroff(COLOR_PAIR(8));
+                }
+                else{
+                    attron(COLOR_PAIR(13));
+                    mvprintw(l.rooms[i].doors_y[j], l.rooms[i].doors_x[j], "@");
+                    attroff(COLOR_PAIR(13));
+                }
+                continue;
+            } 
             attron(COLOR_PAIR(2));
             if (mark[l.rooms[i].other_room[j]] && !l.rooms[i].secret_door[j]){
                 mvprintw(l.rooms[i].doors_y[j], l.rooms[i].doors_x[j], "+");
@@ -1128,6 +1183,11 @@ void print_rooms(){
                     attron(COLOR_PAIR(9));
                     mvprintw(y, x, "S");
                     attroff(COLOR_PAIR(9));
+                }
+                else if (l.rooms[i].in[x - x1][y - y1] == 2){
+                    attron(COLOR_PAIR(14));
+                    mvprintw(y, x, "&");
+                    attroff(COLOR_PAIR(14));
                 }
                 else{
                     attron(COLOR_PAIR(8));
@@ -1368,19 +1428,126 @@ void update_player_state(){
     int x = game.player.x, y = game.player.y;
     game.vis_corridors[game.level][x][y] = 1;
     //new room
-    level_struct l = game.levels[game.level];
-    for (int i = 0; i < l.number_of_rooms; i++){
-        if (l.rooms[i].y1 <= y && y <= l.rooms[i].y2 && l.rooms[i].x1 <= x && x <= l.rooms[i].x2){
-            if (!game.levels[game.level].rooms[i].vis){
-                attron(COLOR_PAIR(12));
-                attron(A_BOLD);
-                mvprintw(2, 27, "YOU HAVE ENTERED A NEW ROOM");
-                refresh();
-                sleep(2);
-                attroff(COLOR_PAIR(12));
-                attroff(A_BOLD);
+    {
+        level_struct l = game.levels[game.level];
+        for (int i = 0; i < l.number_of_rooms; i++){
+            if (l.rooms[i].y1 <= y && y <= l.rooms[i].y2 && l.rooms[i].x1 <= x && x <= l.rooms[i].x2){
+                if (!game.levels[game.level].rooms[i].vis){
+                    attron(COLOR_PAIR(12));
+                    attron(A_BOLD);
+                    mvprintw(2, 27, "YOU HAVE ENTERED A NEW ROOM");
+                    refresh();
+                    sleep(2);
+                    attroff(COLOR_PAIR(12));
+                    attroff(A_BOLD);
+                }
+                game.levels[game.level].rooms[i].vis = 1;
             }
-            game.levels[game.level].rooms[i].vis = 1;
+        }
+    }
+    // password_door
+    {
+        level_struct l = game.levels[game.level];
+        int mark[9];
+        for (int i = 0; i < 9; i++) mark[i] = 0;
+        for (int i = 0; i < l.number_of_rooms; i++){
+            mark[l.room_numbers[i]] = 1;
+        }
+        for (int i = 0; i < l.number_of_rooms; i++){
+            for (int j = 0; j < l.rooms[i].number_of_doors; j++){
+                if (mark[l.rooms[i].other_room[j]] && game.player.x == l.rooms[i].doors_x[j] && game.player.y == l.rooms[i].doors_y[j]){
+                    if (l.rooms[i].password_door[j] && !l.rooms[i].password){
+                        attron(COLOR_PAIR(12));
+                        attron(A_BOLD);
+                        mvprintw(2, 27, "THIS DOOR REQUIRES A PASSWORD. FIND IT!");
+                        attroff(COLOR_PAIR(12));
+                        attroff(A_BOLD);
+                        refresh();
+                        sleep(2);
+                    }
+                    else if (l.rooms[i].password_door[j]){
+                        attron(COLOR_PAIR(3));
+                        attron(A_BOLD);
+                        mvprintw(2, 27, "ENTER THE 4-digit PASSWORD THEN PRESS ENTER: ");
+                        refresh();
+                        attroff(COLOR_PAIR(3));
+                        attroff(A_BOLD);
+                        int p;
+                        scanw("%d", &p);
+                        if (p != l.rooms[i].password){
+                            attron(COLOR_PAIR(15));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "WARNING: WRONG PASSWORD. 2 ATTEMPTS REMAINING");
+                            refresh();
+                            sleep(1);
+                            attroff(COLOR_PAIR(15));
+                            attroff(A_BOLD);
+                            attron(COLOR_PAIR(3));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "ENTER THE 4-digit PASSWORD THEN PRESS ENTER: ");
+                            refresh();
+                            attroff(COLOR_PAIR(3));
+                            attroff(A_BOLD);
+                            int p;
+                            scanw("%d", &p);
+                            if (p != l.rooms[i].password){
+                                attron(COLOR_PAIR(16));
+                                attron(A_BOLD);
+                                mvprintw(2, 27, "WARNING: WRONG PASSWORD. 1 ATTEMPT REMAINING");
+                                refresh();
+                                sleep(1);
+                                attroff(COLOR_PAIR(16));
+                                attroff(A_BOLD);
+                                attron(COLOR_PAIR(3));
+                                attron(A_BOLD);
+                                mvprintw(2, 27, "ENTER THE 4-digit PASSWORD THEN PRESS ENTER: ");
+                                refresh();
+                                attroff(COLOR_PAIR(3));
+                                attroff(A_BOLD);
+                                int p;
+                                scanw("%d", &p);
+                                if (p != l.rooms[i].password){
+                                    //security_room();
+                                }
+                                else{
+                                    l.rooms[i].open_password_door[j] = 1;
+                                }
+                            }
+                            else{
+                                l.rooms[i].open_password_door[j] = 1;
+                            }
+                        }
+                        else{
+                            l.rooms[i].open_password_door[j] = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //password_generator
+    {
+        level_struct l = game.levels[game.level];
+        for (int i = 0; i < l.number_of_rooms; i++){
+            room_struct r = l.rooms[i];
+            for (int x = r.x1 + 1; x < r.x2; x++){
+                for (int y = r.y1 + 1; y < r.y2; y++){
+                    if (game.player.x == x && game.player.y == y){
+                        if (r.in[x - r.x1][y - r.y1] == 2){
+                            int p = rand() % 8999;
+                            p += 1000;
+                            l.rooms[i].password = p;
+                            attron(COLOR_PAIR(12));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "THE PASSWORD IS: %d", p);
+                            refresh();
+                            sleep(7);
+                            attroff(COLOR_PAIR(12));
+                            attroff(A_BOLD);
+                        }
+                    }
+                }
+            }
         }
     }
 }
