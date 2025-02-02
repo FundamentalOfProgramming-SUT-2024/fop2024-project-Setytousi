@@ -30,7 +30,7 @@ typedef struct{
     int password_door[10];
     int open_password_door[10];
     int password;
-    //0 = empty 1 = stairs 2 = password generator
+    //0 = empty 1 = stairs 2 = password generator 3 = trap
 }room_struct;
 typedef struct{
     int number_of_rooms;
@@ -38,6 +38,7 @@ typedef struct{
     int room_numbers[10];
     int stairs_x;
     int stairs_y;
+    int treasure_room[10];
 }level_struct;
 typedef struct{
     int x, y;
@@ -51,6 +52,7 @@ typedef struct{
     int health;
     int energy;
     int vis_corridors[10][300][300];
+    int difficulty;
 }game_struct;
 
 
@@ -260,6 +262,8 @@ void update_player_state();
 void move_f();
 int empty(int x, int y);
 void make_secret_doors();
+void settings();
+void difficulty_settings();
 
 
 int main(){
@@ -294,7 +298,7 @@ int main(){
     else return 0;
     menus();
     pregame();
-    while(1){
+    while(game.health){
         print_game();
         move_player();
         update_player_state();
@@ -714,6 +718,223 @@ void close_files(){
     fclose(games_ptr);
     fclose(register_times_ptr);
 }
+void difficulty_settings(){
+    clear();
+    int curmenu = 0;
+    int total_menus = 4;
+    while(1){
+        clear();
+        attron(A_BOLD);
+        attron(COLOR_PAIR(2));
+        mvprintw(4, (COLS - 16) / 2, "Difficulty Settings");
+        attroff(A_BOLD);
+        attroff(COLOR_PAIR(2));
+        draw_border_menu();
+        if (curmenu == 0){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "Easy");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "Easy");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 1){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Medium");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Medium");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 2){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Hard");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Hard");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 3){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            if (curmenu == 0){
+                clear();
+                game.difficulty = 0;
+                pregame();
+                return;
+            }
+            else if (curmenu == 1){
+                game.difficulty = 1;
+                settings();
+                return;
+            }
+            else if (curmenu == 2){
+                clear();
+                game.difficulty = 2;
+                settings();
+                return;
+            }
+            else{
+                settings();
+                return;
+            }
+        }
+        else{
+            attron(COLOR_PAIR(4));
+            mvprintw(1, COLS / 2 - 29, "Invalid Key !");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(4));
+        }
+        refresh();
+    }
+}
+void settings(){
+    clear();
+    int curmenu = 0;
+    int total_menus = 4;
+    while(1){
+        clear();
+        attron(A_BOLD);
+        attron(COLOR_PAIR(2));
+        mvprintw(4, (COLS - 10) / 2, "Settings");
+        attroff(A_BOLD);
+        attroff(COLOR_PAIR(2));
+        draw_border_menu();
+        if (curmenu == 0){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "Difficulty Settings");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "Difficulty Settings");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 1){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Character Settings");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Character Settings");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 2){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Sound settings");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Sound settings");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 3){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            if (curmenu == 0){
+                clear();
+                difficulty_settings();
+                return;
+            }
+            else if (curmenu == 1){
+                // character_settings();
+                return;
+            }
+            else if (curmenu == 2){
+                clear();
+                // sound_settings();
+                return;
+            }
+            else{
+                pregame();
+                return;
+            }
+        }
+        else{
+            attron(COLOR_PAIR(4));
+            mvprintw(1, COLS / 2 - 29, "Invalid Key !");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(4));
+        }
+        refresh();
+    }
+}
 void scoreboard(){
     clear();
     for (int i = 0; i < 1000; i++) mark[i] = 0;
@@ -805,7 +1026,7 @@ void pregame(){
         attron(A_BOLD);
         attron(A_BLINK);
         attron(COLOR_PAIR(2));
-        mvprintw(4, (COLS - 5) / 2, "Game Menu");
+        mvprintw(4, (COLS - 10) / 2, "Game Menu");
         attroff(A_BOLD);
         attroff(A_BLINK);
         attroff(COLOR_PAIR(2));
@@ -920,7 +1141,7 @@ void pregame(){
             }
             else if (curmenu == 3){
                 clear();
-                // settings();
+                settings();
                 return;
             }
             else if (curmenu == 4){
@@ -1015,6 +1236,7 @@ void make_levels(){
         }
         game.levels[le] = l;
     }
+    //stairs
     for (int le = 0; le < 5; le++){
         if (le == 4) continue;
         for (int i = 0; i < game.levels[le].number_of_rooms; i++){
@@ -1030,6 +1252,28 @@ void make_levels(){
             }
             if (m) break;
         }
+    }
+    //traps
+    for (int le = 0; le < 5; le++){
+        for (int i = 0; i < game.levels[le].number_of_rooms; i++){
+            int x = rand() % 2;
+            if (x >= 2) continue;
+            if (x == 0){
+                if (i % 2) game.levels[le].rooms[i].in[4][3] = 3;
+                else game.levels[le].rooms[i].in[2][4] = 3;
+            }
+            else{
+                game.levels[le].rooms[i].in[4][3] = 3;
+                game.levels[le].rooms[i].in[2][4] = 3;
+            }
+        }
+    }
+    //treasure room
+    {
+        int le = 4;
+        int x = rand() % 6;
+        game.levels[le].treasure_room[x] = 1;
+        game.levels[le].rooms[x].in[5][4] = game.levels[le].rooms[x].in[1][4] = game.levels[le].rooms[x].in[2][4] = game.levels[le].rooms[x].in[4][3] = 3;
     }
 }
 void make_secret_doors(){
@@ -1099,7 +1343,7 @@ void new_game(){
     game.golds = 0;
     game.score = 0;
     game.level = 0;
-    game.health = 0;
+    game.health = 10;
     game.energy = 20;
     for (int i = 0; i < 300; i++){
         for (int j = 0; j < 300; j++){
@@ -1154,9 +1398,14 @@ void print_rooms(){
         if (!l.rooms[i].vis) continue;
         int x1 = l.rooms[i].x1, y1 = l.rooms[i].y1;
         int x2 = l.rooms[i].x2, y2 = l.rooms[i].y2;
-
-        attron(A_BOLD);
-        attron(COLOR_PAIR(4));
+        if (l.treasure_room[i]){
+            attron(A_BOLD);
+            attron(COLOR_PAIR(2));
+        }
+        else{
+            attron(A_BOLD);
+            attron(COLOR_PAIR(4));
+        }
         for (int x = x1; x <= x2; x++){
             mvprintw(y1, x, "=");
             mvprintw(y2, x, "=");
@@ -1165,7 +1414,12 @@ void print_rooms(){
             mvprintw(y, x1, "|");
             mvprintw(y, x2, "|");
         }
-        attroff(COLOR_PAIR(4));
+        if (l.treasure_room[i]){
+            attroff(COLOR_PAIR(2));
+        }
+        else{
+            attroff(COLOR_PAIR(4));
+        }
         for (int j = 0; j < l.rooms[i].number_of_doors; j++){
             if (mark[l.rooms[i].other_room[j]] && l.rooms[i].password_door[j]){
                 if (l.rooms[i].open_password_door[j]){
@@ -1585,6 +1839,29 @@ void update_player_state(){
                             sleep(7);
                             attroff(COLOR_PAIR(12));
                             attroff(A_BOLD);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //trap
+    {
+        level_struct l = game.levels[game.level];
+        for (int i = 0; i < l.number_of_rooms; i++){
+            for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
+                for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
+                    if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 3){
+                        if (x == xx && y == yy){
+                            attron(COLOR_PAIR(12));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "OOPS! YOU FELL INTO A HIDDEN TRAP!");
+                            refresh();
+                            sleep(2);
+                            attroff(COLOR_PAIR(12));
+                            attroff(A_BOLD);
+                            game.health--;
+                            // fight_room();
                         }
                     }
                 }
