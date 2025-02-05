@@ -26,6 +26,7 @@ typedef struct{
     int number_of_foods;
     int foods[20];
     int weapon_cnt[20];
+    int potion_cnt[20];
 }inventory_struct;
 typedef struct{
     int sz;
@@ -39,15 +40,16 @@ typedef struct{
     int doors_y[10];
     int vis;
     int other_room[10];
-    int in[30][30];
+    int in[50][50];
     int secret_door[10];
     int password_door[10];
     int open_password_door[10];
     int password;
     monster_struct monster;
+    monster_struct last_level_monsters[300];
     int used_weapon[30][30];
     //0 = empty 1 = stairs 2 = password generator 3 = trap 4 = trasure 5 = normal food 6 = normal gold 7 = black gold 8 = Mace 9 = Dagger 10 = Magic wand
-    //11 = normal arrow 12 = sword
+    //11 = normal arrow 12 = sword 13 = Health 14 = Speed 15 = Damage
 }room_struct;
 typedef struct{
     int number_of_rooms;
@@ -75,6 +77,10 @@ typedef struct{
     int cur_weapon;
     inventory_struct inventory;
     int time_since_last_attack;
+    int time_since_last_health_potion;
+    int time_since_last_speed_potion;
+    int time_since_last_damage_potion;
+    int player_color;
 }game_struct;
 typedef struct{
     int guest;
@@ -97,6 +103,7 @@ int weapon_damage[20];
 char* weapon_name[20];
 int weapon_dist[20];
 int weapon_num[20];
+int move_g = 0;
 char last_fight;
 
 
@@ -193,8 +200,8 @@ void make_default_rooms(){
     pre_defined_rooms[8] = room9;
     for (int i = 0; i < 9; i++) pre_defined_rooms[i].vis = 0;
     for (int i = 0; i < 9; i++){
-        for (int x = 0; x < 30; x++){
-            for (int y = 0; y < 30; y++){
+        for (int x = 0; x < 50; x++){
+            for (int y = 0; y < 50; y++){
                 pre_defined_rooms[i].in[x][y] = 0;
             }
         }
@@ -322,6 +329,9 @@ void shoot_line(int xx, int yy, int d);
 int is_wall(int x, int y);
 void put_weapon(int x, int y);
 void fight_a();
+void potion_menu();
+void pick_potion(int ind);
+void character_settings();
 
 
 
@@ -338,7 +348,8 @@ int main(){
     keypad(stdscr, TRUE);
     noecho();
     curs_set(0);
-    // mvprintw(1, 1, "🍏.");
+    // mvprintw(1, 1, "✬.");
+    // mvprintw(2, 1, "..");
     // refresh();
     // sleep(3);
     weapon_damage[8] = 5, weapon_damage[9] = 12, weapon_damage[10] = 15, weapon_damage[11] = 5, weapon_damage[12] = 10;
@@ -370,9 +381,19 @@ int main(){
         init_pair(21, COLOR_WHITE, 240);
         init_pair(22, COLOR_CYAN, COLOR_BLACK);
         init_pair(23, 213, COLOR_BLACK); //light pink on black
+        init_pair(24, 34, COLOR_BLACK); //health
+        init_pair(25, 13, COLOR_BLACK); //speed
+        init_pair(26, 214, COLOR_BLACK); // damage
+        init_pair(27, COLOR_CYAN, COLOR_BLACK);
+        init_pair(28, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(29, COLOR_RED, COLOR_BLACK);
+        init_pair(30, COLOR_CYAN, COLOR_WHITE);
+        init_pair(31, COLOR_MAGENTA, COLOR_WHITE);
+        init_pair(32, COLOR_RED, COLOR_WHITE);
     }
     else return 0;
     game.difficulty = 1;
+    game.player_color = 27;
     menus();
     pregame();
     while(game.health){
@@ -867,6 +888,116 @@ void difficulty_settings(){
         refresh();
     }
 }
+void character_settings(){
+    clear();
+    int curmenu = 0;
+    int total_menus = 4;
+    while(1){
+        clear();
+        attron(A_BOLD);
+        attron(COLOR_PAIR(2));
+        mvprintw(4, (COLS - 16) / 2, "Character Settings");
+        attroff(A_BOLD);
+        attroff(COLOR_PAIR(2));
+        draw_border_menu();
+        if (curmenu != 0){
+            attron(COLOR_PAIR(27));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(27));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(30));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(30));
+            attroff(A_BLINK);
+        }
+        if (curmenu != 1){
+            attron(COLOR_PAIR(28));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(28));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(31));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(31));
+            attroff(A_BLINK);
+        }
+        if (curmenu != 2){
+            attron(COLOR_PAIR(29));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(29));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(32));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "P");
+            attroff(COLOR_PAIR(32));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 3){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            if (curmenu == 0){
+                clear();
+                game.difficulty = 0;
+                pregame();
+                return;
+            }
+            else if (curmenu == 1){
+                game.difficulty = 1;
+                settings();
+                return;
+            }
+            else if (curmenu == 2){
+                clear();
+                game.difficulty = 2;
+                settings();
+                return;
+            }
+            else{
+                settings();
+                return;
+            }
+        }
+        else{
+            attron(COLOR_PAIR(4));
+            mvprintw(1, COLS / 2 - 29, "Invalid Key !");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(4));
+        }
+        refresh();
+    }
+}
 void settings(){
     clear();
     int curmenu = 0;
@@ -951,7 +1082,7 @@ void settings(){
                 return;
             }
             else if (curmenu == 1){
-                // character_settings();
+                character_settings();
                 return;
             }
             else if (curmenu == 2){
@@ -1021,6 +1152,7 @@ void printmx(int cnt, int line){
             ind = i;
         }
     }
+    mark[ind] = 1;
     t = difftime(cur_t, tx);
     if (strcmp(userx, user.username) == 0){
         attron(A_BOLD);
@@ -1259,7 +1391,7 @@ void make_levels(){
     }
     //stairs
     for (int le = 0; le < 5; le++){
-        if (le == 4) continue;
+        if (le == 4)continue;
         for (int i = 0; i < game.levels[le].number_of_rooms; i++){
             int m = 0;
             for (int j = 0; j < game.levels[le + 1].number_of_rooms; j++){
@@ -1407,6 +1539,92 @@ void make_levels(){
             }
         }
     }
+    //magics
+    {
+        for (int le = 0; le < 5; le++){
+            for (int i = 0; i < game.levels[le].number_of_rooms; i++){
+                int x = rand() % 3;
+                if (x == 0){
+                    game.levels[le].rooms[i].in[7][8] = 13;
+                }
+                x = rand() % 3;
+                if (x == 0){
+                    game.levels[le].rooms[i].in[10][6] = 14;
+                }
+                x = rand() % 3;
+                if (x == 0){
+                    game.levels[le].rooms[i].in[2][7] = 15;
+                }
+            }
+        }
+    }
+    {   
+    level_struct l;
+    l.number_of_rooms = 1;
+    l.rooms[0] = pre_defined_rooms[0];
+    l.rooms[0].x1 = 70, l.rooms[0].x2 = 120;
+    l.rooms[0].y1 = 5, l.rooms[0].y2 = 40;
+    l.treasure_room[0] = 1;
+    l.rooms[0].number_of_doors = 0; 
+    for (int i = 0; i < 300; i++){
+        l.rooms[0].last_level_monsters[i].alive = 0;
+    }
+    l.room_numbers[0] = 0;
+    int le = 5;
+    game.levels[le] = l;
+    for (int i = 0; i < 10; i++){
+        int x = rand() % 50 + 70;
+        int y = rand() % 35 + 5;
+        int z = rand() % 5;
+        game.levels[le].rooms[0].last_level_monsters[i].alive = 1;
+        if (z == 0){
+            game.levels[le].rooms[0].last_level_monsters[i].touch = 0;
+            game.levels[le].rooms[0].last_level_monsters[i].x = x;
+            game.levels[le].rooms[0].last_level_monsters[i].y = y;
+            game.levels[le].rooms[0].last_level_monsters[i].health = 5;
+            game.levels[le].rooms[0].last_level_monsters[i].damage = 1;
+            game.levels[le].rooms[0].last_level_monsters[i].len = 0;
+            game.levels[le].rooms[0].last_level_monsters[i].lensave = 0;
+            game.levels[le].rooms[0].last_level_monsters[i].name = 'D';
+        }
+        else if (z == 1){
+            game.levels[le].rooms[0].last_level_monsters[i].x = x;
+            game.levels[le].rooms[0].last_level_monsters[i].y = y;
+            game.levels[le].rooms[0].last_level_monsters[i].health = 10;
+            game.levels[le].rooms[0].last_level_monsters[i].damage = 2;
+            game.levels[le].rooms[0].last_level_monsters[i].len = 0;
+            game.levels[le].rooms[0].last_level_monsters[i].lensave = 0;
+            game.levels[le].rooms[0].last_level_monsters[i].name = 'F';
+        }
+        else if (z == 2){
+            game.levels[le].rooms[0].last_level_monsters[i].x = x;
+            game.levels[le].rooms[0].last_level_monsters[i].y = y;
+            game.levels[le].rooms[0].last_level_monsters[i].health = 15;
+            game.levels[le].rooms[0].last_level_monsters[i].damage = 3;
+            game.levels[le].rooms[0].last_level_monsters[i].len = 5;
+            game.levels[le].rooms[0].last_level_monsters[i].lensave = 5;
+            game.levels[le].rooms[0].last_level_monsters[i].name = 'G';
+        }
+        else if (z == 3){
+            game.levels[le].rooms[0].last_level_monsters[i].x = x;
+            game.levels[le].rooms[0].last_level_monsters[i].y = y;
+            game.levels[le].rooms[0].last_level_monsters[i].health = 20;
+            game.levels[le].rooms[0].last_level_monsters[i].damage = 4;
+            game.levels[le].rooms[0].last_level_monsters[i].len = 1000;
+            game.levels[le].rooms[0].last_level_monsters[i].lensave = 1000;
+            game.levels[le].rooms[0].last_level_monsters[i].name = 'S';
+        }
+        else if (z == 4){
+            game.levels[le].rooms[0].last_level_monsters[i].x = x;
+            game.levels[le].rooms[0].last_level_monsters[i].y = y;
+            game.levels[le].rooms[0].last_level_monsters[i].health = 30;
+            game.levels[le].rooms[0].last_level_monsters[i].damage = 5;
+            game.levels[le].rooms[0].last_level_monsters[i].len = 5; 
+            game.levels[le].rooms[0].last_level_monsters[i].lensave = 5;
+            game.levels[le].rooms[0].last_level_monsters[i].name = 'U';
+        }
+    }
+    }
 }
 void make_secret_doors(){
     for (int le = 0; le < 5; le++){
@@ -1482,6 +1700,9 @@ void new_game(){
     game.energy = 30;
     game.cur_weapon = 8;
     game.time_since_last_attack = 0;
+    game.time_since_last_damage_potion = 11;
+    game.time_since_last_health_potion = 11;
+    game.time_since_last_speed_potion = 11;
     for (int i = 0; i < 20; i++){
         game.inventory.weapon_cnt[i] = 0;
     }
@@ -1496,6 +1717,10 @@ void resume_game(){
     char filename[100];
     snprintf(filename, sizeof(filename), "%sgame.save", user.username);
     FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        pregame();
+        return;
+    }
     size_t result = fread(&game, sizeof(game_struct), 1, file);
     fclose(file);
 }
@@ -1508,7 +1733,7 @@ void save_game() {
 }
 void draw_game_border(){
     attron(COLOR_PAIR(2));
-    mvprintw(48, 20, "press s to save and exit   Press E to open food inventory   Press i to open weapon inventory");
+    mvprintw(48, 20, "Press s to save and exit   Press E to open food inventory   Press i to open weapon inventory   Press Y to open potion inventory");
     for (int i = 0; i <= 47; i++){
         mvprintw(i, 20, ".");
         mvprintw(i, 170, ".");
@@ -1540,6 +1765,11 @@ void print_rooms(){
         if (!l.rooms[i].vis && !game.m) continue;
         int x1 = l.rooms[i].x1, y1 = l.rooms[i].y1;
         int x2 = l.rooms[i].x2, y2 = l.rooms[i].y2;
+        // if (game.level == 5){
+        //     mvprintw(1, 1, "%d %d %d %d", x1, x2, y1, y2);
+        //     refresh();
+        //     sleep(2);
+        // }
         if (l.treasure_room[i]){
             attron(A_BOLD);
             attron(COLOR_PAIR(2));
@@ -1590,7 +1820,7 @@ void print_rooms(){
         attroff(A_BOLD);
         for (int x = x1 + 1; x < x2; x++){
             for (int y = y1 + 1; y < y2; y++){
-                if (l.rooms[i].in[x - x1][y - y1] == 1){
+                if (game.level < 4 && l.rooms[i].in[x - x1][y - y1] == 1){
                     attron(COLOR_PAIR(9));
                     mvprintw(y, x, "S");
                     attroff(COLOR_PAIR(9));
@@ -1645,6 +1875,20 @@ void print_rooms(){
                     mvprintw(y, x, "☭");
                     attroff(COLOR_PAIR(22));
                 }
+                else if (l.rooms[i].in[x - x1][y - y1] == 13){
+                    attron(COLOR_PAIR(24));
+                    mvprintw(y, x, "✬");
+                    attroff(COLOR_PAIR(24));
+                }else if (l.rooms[i].in[x - x1][y - y1] == 14){
+                    attron(COLOR_PAIR(25));
+                    mvprintw(y, x, "✬");
+                    attroff(COLOR_PAIR(25));
+                }
+                else if (l.rooms[i].in[x - x1][y - y1] == 15){
+                    attron(COLOR_PAIR(26));
+                    mvprintw(y, x, "✬");
+                    attroff(COLOR_PAIR(26));
+                }
                 else{
                     if (l.treasure_room[i]){
                         attron(COLOR_PAIR(2));
@@ -1666,7 +1910,9 @@ void print_rooms(){
     refresh();
 }
 void print_player(){
+    attron(COLOR_PAIR(game.player_color));
     mvprintw(game.player.y, game.player.x, "P");
+    attroff(COLOR_PAIR(game.player_color));
     refresh();
 }
 int dist(int x1, int y1, int x2, int y2){
@@ -1707,15 +1953,29 @@ void print_monsters(){
             attroff(COLOR_PAIR(23));
         }
     }
+    if (game.level == 5){
+        level_struct l = game.levels[5];
+        cnt = l.number_of_rooms;
+        for (int i = 0; i < cnt; i++){
+            if (!l.rooms[i].vis && !game.m) continue;
+            for (int k = 0; k < 300; k++){
+                if (l.rooms[i].last_level_monsters[k].alive){
+                    attron(COLOR_PAIR(23));
+                    mvprintw(l.rooms[i].last_level_monsters[k].y, l.rooms[i].last_level_monsters[k].x, "%c", l.rooms[i].last_level_monsters[k].name);
+                    attroff(COLOR_PAIR(23));
+                }
+            }
+        }
+    }
 }
 void print_game(){
     clear();
     draw_game_border();
     print_rooms();
     print_corridors();
+    print_monsters();
     print_player();
     print_unders();
-    print_monsters();
     refresh();
 }
 void print_unders(){
@@ -1913,34 +2173,58 @@ void move_player(){
     if (ch == 'y' && valid(game.player.x - 1, game.player.y - 1)){
         game.player.x--, game.player.y--;
         move_monster(-1, -1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x - 1, game.player.y - 1)){
+            game.player.x--, game.player.y--;
+        }
     }
     else if (ch == 'u' && valid(game.player.x + 1, game.player.y - 1)){
         game.player.x++, game.player.y--;
         move_monster(1, -1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x + 1, game.player.y - 1)){
+            game.player.x++, game.player.y--;
+        }
     }
     else if (ch == 'b' && valid(game.player.x - 1, game.player.y + 1)){
         game.player.x--, game.player.y++;
         move_monster(-1, 1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x - 1, game.player.y + 1)){
+            game.player.x--, game.player.y++;
+        }
     }
     else if (ch == 'n' && valid(game.player.x + 1, game.player.y + 1)){
         game.player.x++, game.player.y++;
         move_monster(1, 1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x + 1, game.player.y + 1)){
+            game.player.x++, game.player.y++;
+        }
     }
     else if (ch == 'h' && valid(game.player.x - 1, game.player.y)){
         game.player.x--;
         move_monster(-1, 0);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x - 1, game.player.y)){
+            game.player.x--;
+        }
     }
     else if (ch == 'j' && valid(game.player.x, game.player.y - 1)){
         game.player.y--;
         move_monster(0, -1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x, game.player.y - 1)){
+            game.player.y--;
+        }
     }
     else if (ch == 'k' && valid(game.player.x, game.player.y + 1)){
         game.player.y++;
         move_monster(0, 1);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x, game.player.y + 1)){
+            game.player.y++;
+        }
     }
     else if (ch == 'l' && valid(game.player.x + 1, game.player.y)){
         game.player.x++;
         move_monster(1, 0);
+        if (game.time_since_last_speed_potion <= 10 && valid(game.player.x + 1, game.player.y)){
+            game.player.x++;
+        }
     }
     else if (ch == 'f'){
         move_f();
@@ -1959,6 +2243,9 @@ void move_player(){
     else if (ch == 'i'){
         weapon_menu();
     }
+    else if (ch == 'Y'){
+        potion_menu();
+    }
     else if (ch == 'W'){
         game.inventory.weapon_cnt[game.cur_weapon]++;
         game.cur_weapon = 0;
@@ -1969,6 +2256,13 @@ void move_player(){
     }
     else if (ch == 'a'){
         fight_a();
+    }
+    else if (ch == 'g'){
+        move_g = 1;
+    }
+    else if (ch == 'c'){
+        game.player.x = game.levels[game.level].stairs_x;
+        game.player.y = game.levels[game.level].stairs_y;
     }
     else if (ch == '>' && game.player.x == game.levels[game.level].stairs_x && game.player.y == game.levels[game.level].stairs_y){
         game.level++;
@@ -1994,6 +2288,7 @@ void move_player(){
 void update_player_state(){
     int x = game.player.x, y = game.player.y;
     game.moves++;
+    game.time_since_last_damage_potion++, game.time_since_last_health_potion++, game.time_since_last_speed_potion++;
     if (game.difficulty <= 1){
         if ((game.moves) % 20 == 0 && game.energy) game.energy--;
         if ((game.moves) % 10 == 15 && game.energy < 7) game.health--;
@@ -2003,8 +2298,9 @@ void update_player_state(){
         if ((game.moves) % 5 == 15 && game.energy < 7) game.health--;
     }
     game.time_since_last_attack++;
-    if (game.time_since_last_attack == 30){
+    if (game.energy == 30 && game.time_since_last_attack >= 30){
         game.health++;
+        if (game.time_since_last_health_potion <= 10) game.health++;
         if (game.health > 100) game.health = 100;
     }
     game.vis_corridors[game.level][x][y] = 1;
@@ -2139,7 +2435,8 @@ void update_player_state(){
                             sleep(2);
                             attroff(COLOR_PAIR(12));
                             attroff(A_BOLD);
-                            game.health--;
+                            game.health --;;
+                            if (game.health < 0) game.health = 0;
                             game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
                             // fight_room();
                         }
@@ -2158,12 +2455,14 @@ void update_player_state(){
                         if (x == xx && y == yy){
                             attron(COLOR_PAIR(12));
                             attron(A_BOLD);
-                            mvprintw(2, 27, "Mission complete, you're a legend!");
+                            mvprintw(2, 27, "YOU ENTERED THE LAST LEVEL");
                             refresh();
-                            sleep(4);
+                            sleep(2);
                             attroff(COLOR_PAIR(12));
                             attroff(A_BOLD);
-                            win();
+                            game.level++;
+                            game.player.x = 90, game.player.y = 22;
+                            update_player_state();
                         }
                     }
                 }
@@ -2174,6 +2473,7 @@ void update_player_state(){
     {
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
+            if (move_g) break;
             for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
                 for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
                     if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 5){
@@ -2198,6 +2498,7 @@ void update_player_state(){
     {
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
+            if (move_g) break;
             for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
                 for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
                     if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 6){
@@ -2222,6 +2523,7 @@ void update_player_state(){
     {
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
+            if (move_g) break;
             for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
                 for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
                     if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 7){
@@ -2246,6 +2548,7 @@ void update_player_state(){
     {
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
+            if (move_g) break;
             for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
                 for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
                     for (int j = 8; j <= 12; j++){
@@ -2273,6 +2576,7 @@ void update_player_state(){
     {
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
+            if (l.rooms[i].monster.alive == 0) continue;
             if (dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) <= 1 && !l.rooms[i].monster.touch){
                 game.levels[game.level].rooms[i].monster.touch = 1;
                 game.health -= l.rooms[i].monster.damage;
@@ -2287,12 +2591,118 @@ void update_player_state(){
                 attroff(A_BOLD);
             }
             else if (dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) <= 1){
+                attron(COLOR_PAIR(12));
+                attron(A_BOLD);
+                mvprintw(2, 27, "THE MONSTER ATTACKED YOU. RUN!");
+                refresh();
+                sleep(1);
+                attroff(COLOR_PAIR(12));
+                attroff(A_BOLD);
                 game.health -= l.rooms[i].monster.damage;
                 if (game.health < 0) game.health = 0;
                 game.time_since_last_attack = 0;
             }
         }
     }
+    //potions
+    {
+        level_struct l = game.levels[game.level];
+        for (int i = 0; i < l.number_of_rooms; i++){
+            if (move_g) break;
+            for (int xx = l.rooms[i].x1 + 1; xx < l.rooms[i].x2; xx++){
+                for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
+                    if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 13){
+                        if (x == xx && y == yy){
+                            attron(COLOR_PAIR(12));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "YOU PICKED UP A HEALTH POTION");
+                            refresh();
+                            sleep(2);
+                            attroff(COLOR_PAIR(12));
+                            attroff(A_BOLD);
+                            game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
+                            game.inventory.potion_cnt[13]++;
+                        }
+                    }
+                    if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 14){
+                        if (x == xx && y == yy){
+                            attron(COLOR_PAIR(12));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "YOU PICKED UP A SPEED POTION");
+                            refresh();
+                            sleep(2);
+                            attroff(COLOR_PAIR(12));
+                            attroff(A_BOLD);
+                            game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
+                            game.inventory.potion_cnt[14]++;
+                        }
+                    }
+                    if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 15){
+                        if (x == xx && y == yy){
+                            attron(COLOR_PAIR(12));
+                            attron(A_BOLD);
+                            mvprintw(2, 27, "YOU PICKED UP A DAMAGE POTION");
+                            refresh();
+                            sleep(2);
+                            attroff(COLOR_PAIR(12));
+                            attroff(A_BOLD);
+                            game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
+                            game.inventory.potion_cnt[15]++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //last_level
+    if (game.level == 5)
+    {
+        level_struct l = game.levels[game.level];
+        int check = 0;
+        for (int i = 0; i < l.number_of_rooms; i++){
+            for (int k = 0; k < 300; k++){
+                if (l.rooms[i].last_level_monsters[k].alive == 0) continue;
+                check = 1;
+                if (dist(l.rooms[i].last_level_monsters[k].x, l.rooms[i].last_level_monsters[k].y, x, y) <= 1 && !l.rooms[i].last_level_monsters[k].touch){
+                    game.levels[game.level].rooms[i].last_level_monsters[k].touch = 1;
+                    game.health -= l.rooms[i].last_level_monsters[k].damage;
+                    if (game.health < 0) game.health = 0;
+                    game.time_since_last_attack = 0;
+                    attron(COLOR_PAIR(12));
+                    attron(A_BOLD);
+                    mvprintw(2, 27, "OOPS, YOU WAKED UP THE MONSTER. RUN!");
+                    refresh();
+                    sleep(1);
+                    attroff(COLOR_PAIR(12));
+                    attroff(A_BOLD);
+                }
+                else if (dist(l.rooms[i].last_level_monsters[k].x, l.rooms[i].last_level_monsters[k].y, x, y) <= 1){
+                    attron(COLOR_PAIR(12));
+                    attron(A_BOLD);
+                    mvprintw(2, 27, "THE MONSTER ATTACKED YOU. RUN!");
+                    refresh();
+                    sleep(1);
+                    attroff(COLOR_PAIR(12));
+                    attroff(A_BOLD);
+                    game.health -= l.rooms[i].last_level_monsters[k].damage;
+                    if (game.health < 0) game.health = 0;
+                    game.time_since_last_attack = 0;
+                }
+            }
+        }
+        if (!check){
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "Winner, winner, chicken dinner!");
+            refresh();
+            sleep(5);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
+            win();
+        }
+    }
+    if (move_g == 2) move_g = 0;
+    if (move_g == 1) move_g = 2;
 }
 void win(){
     user.gold += game.golds;
@@ -2433,11 +2843,11 @@ void weapon_menu(){
                             cnt++;
                             continue;
                         }
-                        if (j == 8) mvprintw(13 + i, 94, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 9) mvprintw(13 + i, 88, "DAGGER 🗡️ (range 5 damage 12) : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 10) mvprintw(13 + i, 88, "MAGIC WAND M (range 10 damage 15) : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 11) mvprintw(13 + i, 88, "NORMAL ARROW ↳ (range 5 damage 5) : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 12) mvprintw(13 + i, 88, "SWORD ☭ (range 1 damage 10): %d", game.inventory.weapon_cnt[j]);
+                        if (j == 8) mvprintw(13 + i, 89, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 9) mvprintw(13 + i, 89, "DAGGER 🗡️ (range 5 damage 12) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 10) mvprintw(13 + i, 89, "MAGIC WAND M (range 10 damage 15) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 11) mvprintw(13 + i, 89, "NORMAL ARROW ↳ (range 5 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 12) mvprintw(13 + i, 89, "SWORD ☭ (range 1 damage 10): %d", game.inventory.weapon_cnt[j]);
                         cnt++;
                     }
                 }
@@ -2452,7 +2862,7 @@ void weapon_menu(){
                             cnt++;
                             continue;
                         }
-                        if (j == 8) mvprintw(13 + i, 94, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        if (j == 8) mvprintw(13 + i, 88, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
                         else if (j == 9) mvprintw(13 + i, 88, "DAGGER 🗡️ (range 5 damage 12) : %d", game.inventory.weapon_cnt[j]);
                         else if (j == 10) mvprintw(13 + i, 88, "MAGIC WAND M (range 10 damage 15) : %d", game.inventory.weapon_cnt[j]);
                         else if (j == 11) mvprintw(13 + i, 88, "NORMAL ARROW ↳ (range 5 damage 5) : %d", game.inventory.weapon_cnt[j]);
@@ -2466,7 +2876,7 @@ void weapon_menu(){
         if (curmenu == total_menus - 1){
             attron(COLOR_PAIR(21));
             attron(A_BLINK);
-            mvprintw(12 + total_menus, 93, "Exit");
+            mvprintw(12 + total_menus, 94, "Exit");
             attroff(COLOR_PAIR(21));
             attroff(A_BLINK);
         }
@@ -2545,6 +2955,44 @@ void move_monster(int mx, int my){
             }
         }
     }
+    if (game.level == 5){
+        for (int i = 0; i < l.number_of_rooms; i++){
+            int x1 = l.rooms[i].x1, x2 = l.rooms[i].x2, y1 = l.rooms[i].y1, y2 = l.rooms[i].y2;
+            for (int k = 0; k < 300; k++){
+                monster_struct m = l.rooms[i].last_level_monsters[k];
+                if (!m.alive) continue;
+                if (m.touch && m.len == 0){
+                    game.levels[game.level].rooms[i].last_level_monsters[k].len = m.lensave;
+                    game.levels[game.level].rooms[i].last_level_monsters[k].touch = 0;
+                    continue;;
+                }
+                if (x1 <= game.player.x && game.player.x <= x2 && y1 <= game.player.y && game.player.y <= y2){
+                    if (!m.touch){
+                        int check = 0;
+                        while(!check){
+                            int arr[6] = {-1, 1, 0, 0, 0, 0};
+                            int val = rand() % 6;
+                            int dir = rand() % 2;
+                            int xx, yy;
+                            if (dir == 0) xx = 0, yy = arr[val];
+                            else yy = 0, xx = arr[val];
+                            if (x1 < m.x + xx && m.x + xx < x2 && y1 < m.y + yy && m.y + yy < y2 && !(m.x + xx == 49 && m.y + yy == 34)){
+                                game.levels[game.level].rooms[i].last_level_monsters[k].x += xx;
+                                game.levels[game.level].rooms[i].last_level_monsters[k].y += yy;
+                                check = 1;
+                            }
+                        }
+                    }
+                    if (!m.alive || !m.len || !m.touch) continue;
+                    if (x1 < m.x + mx && m.x + mx < x2 && y1 < m.y + my && m.y + my < y2 && !(m.x + mx == game.player.x && m.y + my == game.player.y) && !(m.x + mx == 49 && m.y + my == 34)){
+                        game.levels[game.level].rooms[i].last_level_monsters[k].x += mx;
+                        game.levels[game.level].rooms[i].last_level_monsters[k].y += my;
+                        game.levels[game.level].rooms[i].last_level_monsters[k].len--;
+                    }
+                }
+            }
+        }
+    }
 }
 void pick_weapon(int ind){
     clear();
@@ -2572,6 +3020,16 @@ void pick_weapon(int ind){
 }
 void fight(){
     int w = game.cur_weapon;
+    if (w == 0){
+        attron(COLOR_PAIR(12));
+        attron(A_BOLD);
+        mvprintw(2, 27, "PICK A WEAPON FIRST");
+        refresh();
+        sleep(1);
+        attroff(COLOR_PAIR(12));
+        attroff(A_BOLD);
+        return;
+    }
     int x = game.player.x;
     int y = game.player.y;
     if (weapon_dist[w] == 1){
@@ -2624,6 +3082,7 @@ int monster_damage(int x, int y){
         if (!l.rooms[i].monster.alive) continue;
         if (x == l.rooms[i].monster.x && y == l.rooms[i].monster.y){
             game.levels[game.level].rooms[i].monster.health -= weapon_damage[game.cur_weapon];
+            if (game.time_since_last_damage_potion <= 10) game.levels[game.level].rooms[i].monster.health -= weapon_damage[game.cur_weapon];
             if (game.cur_weapon == 10){
                 game.levels[game.level].rooms[i].monster.len = 0;
             }
@@ -2641,6 +3100,32 @@ int monster_damage(int x, int y){
             return 1;
         }
     }
+    if (game.level == 5){
+        for (int i = 0; i < l.number_of_rooms; i++){
+            for (int k = 0; k < 300; k++){
+                if (!l.rooms[i].last_level_monsters[k].alive) continue;
+                if (x == l.rooms[i].last_level_monsters[k].x && y == l.rooms[i].last_level_monsters[k].y){
+                    game.levels[game.level].rooms[i].last_level_monsters[k].health -= weapon_damage[game.cur_weapon];
+                    if (game.time_since_last_damage_potion <= 10) game.levels[game.level].rooms[i].last_level_monsters[k].health -= weapon_damage[game.cur_weapon];
+                    if (game.cur_weapon == 10){
+                        game.levels[game.level].rooms[i].last_level_monsters[k].len = 0;
+                    }
+                    if (l.rooms[i].last_level_monsters[k].health <= 0){
+                        l.rooms[i].last_level_monsters[k].health = 0;
+                        game.levels[game.level].rooms[i].last_level_monsters[k].alive = 0;
+                    }
+                    attron(COLOR_PAIR(12));
+                    attron(A_BOLD);
+                    mvprintw(2, 27, "YOU HIT %c . Current health : %d", l.rooms[i].last_level_monsters[k].name, l.rooms[i].last_level_monsters[k].health);
+                    refresh();
+                    sleep(1);
+                    attroff(COLOR_PAIR(12));
+                    attroff(A_BOLD);
+                    return 1;
+                }
+            }
+        }
+    }
     return 0;
 }
 void shoot_line(int xx, int yy, int d){
@@ -2648,6 +3133,13 @@ void shoot_line(int xx, int yy, int d){
     while(d && !is_wall(x + xx, y + yy)){
         x += xx;
         y += yy;
+        if (game.cur_weapon == 8) mvprintw(y, x, "🛠️");
+        else if (game.cur_weapon == 9) mvprintw(y, x, "🗡️");
+        else if (game.cur_weapon == 10) mvprintw(y, x, "M");
+        else if (game.cur_weapon == 11) mvprintw(y, x, "↳");
+        else if (game.cur_weapon == 12) mvprintw(y, x, "☭"); 
+        refresh();
+        sleep(1);
         if (monster_damage(x, y)) return;
         d--;
     }
@@ -2674,6 +3166,16 @@ void put_weapon(int x, int y){
 }
 void fight_a(){
     int w = game.cur_weapon;
+    if (w == 0){
+        attron(COLOR_PAIR(12));
+        attron(A_BOLD);
+        mvprintw(2, 27, "PICK A WEAPON FIRST");
+        refresh();
+        sleep(1);
+        attroff(COLOR_PAIR(12));
+        attroff(A_BOLD);
+        return;
+    }
     int x = game.player.x;
     int y = game.player.y;
     if (weapon_dist[w] == 1){
@@ -2716,5 +3218,114 @@ void fight_a(){
             attroff(COLOR_PAIR(12));
             attroff(A_BOLD);
         }
+    }
+}
+void potion_menu(){
+    int curmenu = 0;
+    int total_menus;
+    while(1){
+        clear();
+        print_game();
+        total_menus = 1;
+        for (int i = 0; i < 20; i++){
+            if (game.inventory.potion_cnt[i]) total_menus++;
+        }
+        draw_inventory_border();
+        attron(COLOR_PAIR(5));
+        attron(A_BOLD);
+        mvprintw(11, 90, "INVENTORY");
+        attroff(COLOR_PAIR(5));
+        attroff(A_BOLD);
+        for (int i = 0; i < total_menus - 1; i++){
+            if (curmenu == i){
+                attron(COLOR_PAIR(21));
+                int cnt = 0;
+                for (int j = 0; j < 20; j++){
+                    if (game.inventory.potion_cnt[j]){
+                        if (i != cnt){
+                            cnt++;
+                            continue;
+                        }
+                        if (j == 13) mvprintw(13 + i, 89, "Health Potion : %d", game.inventory.potion_cnt[j]);
+                        else if (j == 14) mvprintw(13 + i, 89, "Speed Potion : %d", game.inventory.potion_cnt[j]);
+                        else if (j == 15) mvprintw(13 + i, 89, "Damage Potion : %d", game.inventory.potion_cnt[j]);
+                        cnt++;
+                    }
+                }
+                attroff(COLOR_PAIR(21));
+            }
+            else{
+                attron(COLOR_PAIR(5));
+                int cnt = 0;
+                for (int j = 0; j < 20; j++){
+                    if (game.inventory.potion_cnt[j]){
+                        if (i != cnt){
+                            cnt++;
+                            continue;
+                        }
+                        if (j == 13) mvprintw(13 + i, 89, "Health Potion : %d", game.inventory.potion_cnt[j]);
+                        else if (j == 14) mvprintw(13 + i, 89, "Speed Potion : %d", game.inventory.potion_cnt[j]);
+                        else if (j == 15) mvprintw(13 + i, 89, "Damage Potion : %d", game.inventory.potion_cnt[j]);
+                        cnt++;
+                    }
+                }
+                attroff(COLOR_PAIR(5));
+            }
+        }
+        if (curmenu == total_menus - 1){
+            attron(COLOR_PAIR(21));
+            attron(A_BLINK);
+            mvprintw(12 + total_menus, 94, "Exit");
+            attroff(COLOR_PAIR(21));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(5));
+            attron(A_BLINK);
+            mvprintw(12 + total_menus, 93, "Exit");
+            attroff(COLOR_PAIR(5));
+            attroff(A_BLINK);
+        }
+        refresh();
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            for (int i = 0; i < total_menus - 1; i++){
+                if (curmenu == i){
+                    int cnt = 0;
+                    for (int j = 0; j < 20; j++){
+                        if (game.inventory.potion_cnt[j]){
+                            if (i != cnt){
+                                cnt++;
+                                continue;
+                            }
+                            pick_potion(j);
+                            return;
+                        }
+                    }
+                }
+            }
+            if (curmenu == total_menus - 1){
+                return;
+            }
+        }
+    }
+}
+void pick_potion(int ind){
+    if (ind == 13){
+        game.time_since_last_health_potion = 0;
+    }
+    else if (ind == 14){
+        game.time_since_last_speed_potion = 0;
+    }
+    else if (ind == 15){
+        game.time_since_last_damage_potion = 0;
     }
 }
