@@ -19,6 +19,8 @@ typedef struct{
     int alive;
     int len;
     char name;
+    int touch;
+    int lensave;
 }monster_struct;
 typedef struct{
     int number_of_foods;
@@ -43,6 +45,7 @@ typedef struct{
     int open_password_door[10];
     int password;
     monster_struct monster;
+    int used_weapon[30][30];
     //0 = empty 1 = stairs 2 = password generator 3 = trap 4 = trasure 5 = normal food 6 = normal gold 7 = black gold 8 = Mace 9 = Dagger 10 = Magic wand
     //11 = normal arrow 12 = sword
 }room_struct;
@@ -71,6 +74,7 @@ typedef struct{
     int moves;
     int cur_weapon;
     inventory_struct inventory;
+    int time_since_last_attack;
 }game_struct;
 typedef struct{
     int guest;
@@ -89,6 +93,11 @@ room_struct pre_defined_rooms[10];
 corridor_struct pre_defined_corridors[10][10];
 game_struct game;
 user_struct user;
+int weapon_damage[20];
+char* weapon_name[20];
+int weapon_dist[20];
+int weapon_num[20];
+char last_fight;
 
 
 void draw_border_menu();
@@ -197,6 +206,11 @@ void make_default_rooms(){
             pre_defined_rooms[i].open_password_door[j] = 0;
             pre_defined_rooms[i].password = 0;
         }
+        for (int j = 0; j < 30; j++){
+            for (int k = 0; k < 30; k++){
+                pre_defined_rooms[i].used_weapon[j][k] = 0;
+            }
+        }
     }
 }
 void make_default_corridors(){
@@ -300,6 +314,18 @@ void draw_inventory_border();
 void lose();
 void weapon_menu();
 void print_monsters();
+void move_monster(int mx, int my);
+void pick_weapon(int ind);
+void fight();
+int monster_damage(int x, int y);
+void shoot_line(int xx, int yy, int d);
+int is_wall(int x, int y);
+void put_weapon(int x, int y);
+void fight_a();
+
+
+
+
 
 
 int main(){
@@ -315,6 +341,10 @@ int main(){
     // mvprintw(1, 1, "🍏.");
     // refresh();
     // sleep(3);
+    weapon_damage[8] = 5, weapon_damage[9] = 12, weapon_damage[10] = 15, weapon_damage[11] = 5, weapon_damage[12] = 10;
+    weapon_name[8] = "MACE", weapon_name[9] = "DAGGER", weapon_name[10] = "MAGIC_WAND", weapon_name[11] = "NORMAL_ARROW", weapon_name[12] = "SWORD";
+    weapon_dist[8] = 1, weapon_dist[9] = 5, weapon_dist[10] = 10, weapon_dist[11] = 5, weapon_dist[12] = 1;
+    weapon_num[8] = 1, weapon_num[9] = 10, weapon_num[10] = 8, weapon_num[11] = 20, weapon_num[12] = 1000;
     if (has_colors()){
         start_color();
         init_pair(1, COLOR_WHITE, COLOR_WHITE);
@@ -1306,7 +1336,7 @@ void make_levels(){
             for (int i = 0; i < game.levels[le].number_of_rooms; i++){
                 int x = rand() % 4;
                 if (x == 0){
-                    int w = rand() % 5;
+                    int w = rand() % 4 + 1;
                     int p = rand() % 3;
                     if (p == 0) game.levels[le].rooms[i].in[6][1] = 8 + w;
                     else if (p == 1) game.levels[le].rooms[i].in[6][6] = 8 + w;
@@ -1322,6 +1352,7 @@ void make_levels(){
                 int x = rand() % 3;
                 if (x == 0){
                     game.levels[le].rooms[i].monster.alive = 1;
+                    game.levels[le].rooms[i].monster.touch = 0;
                     int y = rand() % 5;
                     int xr = game.levels[le].rooms[i].x1, yr = game.levels[le].rooms[i].y1;
                     if (y == 0){
@@ -1330,6 +1361,7 @@ void make_levels(){
                         game.levels[le].rooms[i].monster.health = 5;
                         game.levels[le].rooms[i].monster.damage = 1;
                         game.levels[le].rooms[i].monster.len = 0;
+                        game.levels[le].rooms[i].monster.lensave = 0;
                         game.levels[le].rooms[i].monster.name = 'D';
                     }
                     else if (y == 1){
@@ -1338,6 +1370,7 @@ void make_levels(){
                         game.levels[le].rooms[i].monster.health = 10;
                         game.levels[le].rooms[i].monster.damage = 2;
                         game.levels[le].rooms[i].monster.len = 0;
+                        game.levels[le].rooms[i].monster.lensave = 0;
                         game.levels[le].rooms[i].monster.name = 'F';
                     }
                     else if (y == 2){
@@ -1346,6 +1379,7 @@ void make_levels(){
                         game.levels[le].rooms[i].monster.health = 15;
                         game.levels[le].rooms[i].monster.damage = 3;
                         game.levels[le].rooms[i].monster.len = 5;
+                        game.levels[le].rooms[i].monster.lensave = 5;
                         game.levels[le].rooms[i].monster.name = 'G';
                     }
                     else if (y == 3){
@@ -1354,6 +1388,7 @@ void make_levels(){
                         game.levels[le].rooms[i].monster.health = 20;
                         game.levels[le].rooms[i].monster.damage = 4;
                         game.levels[le].rooms[i].monster.len = 1000;
+                        game.levels[le].rooms[i].monster.lensave = 1000;
                         game.levels[le].rooms[i].monster.name = 'S';
                     }
                     else if (y == 4){
@@ -1362,6 +1397,7 @@ void make_levels(){
                         game.levels[le].rooms[i].monster.health = 30;
                         game.levels[le].rooms[i].monster.damage = 5;
                         game.levels[le].rooms[i].monster.len = 5; 
+                        game.levels[le].rooms[i].monster.lensave = 5;
                         game.levels[le].rooms[i].monster.name = 'U';
                     }
                 }
@@ -1441,8 +1477,11 @@ void new_game(){
     game.score = 0;
     game.m = 0;
     game.level = 0;
-    game.health = 10;
+    last_fight = 'a';
+    game.health = 100;
     game.energy = 30;
+    game.cur_weapon = 8;
+    game.time_since_last_attack = 0;
     for (int i = 0; i < 20; i++){
         game.inventory.weapon_cnt[i] = 0;
     }
@@ -1627,7 +1666,7 @@ void print_rooms(){
     refresh();
 }
 void print_player(){
-    mvprintw(game.player.y, game.player.x, "👾");
+    mvprintw(game.player.y, game.player.x, "P");
     refresh();
 }
 int dist(int x1, int y1, int x2, int y2){
@@ -1698,7 +1737,8 @@ void print_unders(){
     }
     attron(COLOR_PAIR(2));
     attron(A_BOLD);
-    mvprintw(45, 95, "current weapon:");
+    if (game.cur_weapon) mvprintw(45, 95, "current weapon: %s", weapon_name[game.cur_weapon]);
+    else mvprintw(45, 95, "current weapon: NO WEAPON");
     attroff(COLOR_PAIR(2));
     attroff(A_BOLD);
 }
@@ -1725,6 +1765,11 @@ int in_corridor(int xp, int yp){
 }
 int valid(int x, int y){
     level_struct l = game.levels[game.level];
+    //monster
+    // for (int i = 0; i < l.number_of_rooms; i++){
+    //     if (dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) == 0) return 0;
+    // }
+    ///
     int inroom = 0;
     for (int i = 0; i < l.number_of_rooms; i++){
         bool check_door = 0;
@@ -1768,6 +1813,11 @@ int valid(int x, int y){
 }
 int empty(int x, int y){
     level_struct l = game.levels[game.level];
+    //monster
+    for (int i = 0; i < l.number_of_rooms; i++){
+        if (l.rooms[i].monster.alive && dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) == 0) return 0;
+    }
+    ///
     int inroom = 0;
     for (int i = 0; i < l.number_of_rooms; i++){
         bool check_door = 0;
@@ -1862,27 +1912,35 @@ void move_player(){
     char ch = getch();
     if (ch == 'y' && valid(game.player.x - 1, game.player.y - 1)){
         game.player.x--, game.player.y--;
+        move_monster(-1, -1);
     }
     else if (ch == 'u' && valid(game.player.x + 1, game.player.y - 1)){
         game.player.x++, game.player.y--;
+        move_monster(1, -1);
     }
     else if (ch == 'b' && valid(game.player.x - 1, game.player.y + 1)){
         game.player.x--, game.player.y++;
+        move_monster(-1, 1);
     }
     else if (ch == 'n' && valid(game.player.x + 1, game.player.y + 1)){
         game.player.x++, game.player.y++;
+        move_monster(1, 1);
     }
     else if (ch == 'h' && valid(game.player.x - 1, game.player.y)){
         game.player.x--;
+        move_monster(-1, 0);
     }
     else if (ch == 'j' && valid(game.player.x, game.player.y - 1)){
         game.player.y--;
+        move_monster(0, -1);
     }
     else if (ch == 'k' && valid(game.player.x, game.player.y + 1)){
         game.player.y++;
+        move_monster(0, 1);
     }
     else if (ch == 'l' && valid(game.player.x + 1, game.player.y)){
         game.player.x++;
+        move_monster(1, 0);
     }
     else if (ch == 'f'){
         move_f();
@@ -1901,6 +1959,17 @@ void move_player(){
     else if (ch == 'i'){
         weapon_menu();
     }
+    else if (ch == 'W'){
+        game.inventory.weapon_cnt[game.cur_weapon]++;
+        game.cur_weapon = 0;
+    }
+    else if (ch == ' '){
+        fight();
+        move_monster(0, 0);
+    }
+    else if (ch == 'a'){
+        fight_a();
+    }
     else if (ch == '>' && game.player.x == game.levels[game.level].stairs_x && game.player.y == game.levels[game.level].stairs_y){
         game.level++;
         attron(COLOR_PAIR(12));
@@ -1918,6 +1987,7 @@ void move_player(){
     //     return;
     // }
     else{
+        move_monster(0, 0);
         move_player();
     }
 }
@@ -1925,12 +1995,17 @@ void update_player_state(){
     int x = game.player.x, y = game.player.y;
     game.moves++;
     if (game.difficulty <= 1){
-        if ((game.moves) % 20 == 0) game.energy--;
-        if ((game.moves) % 30 == 15 && game.energy < 7) game.health--;
+        if ((game.moves) % 20 == 0 && game.energy) game.energy--;
+        if ((game.moves) % 10 == 15 && game.energy < 7) game.health--;
     }
     else{
-        if ((game.moves) % 15 == 0) game.energy--;
-        if ((game.moves) % 25 == 15 && game.energy < 7) game.health--;
+        if ((game.moves) % 15 == 0 && game.energy) game.energy--;
+        if ((game.moves) % 5 == 15 && game.energy < 7) game.health--;
+    }
+    game.time_since_last_attack++;
+    if (game.time_since_last_attack == 30){
+        game.health++;
+        if (game.health > 100) game.health = 100;
     }
     game.vis_corridors[game.level][x][y] = 1;
     //new room
@@ -2065,6 +2140,7 @@ void update_player_state(){
                             attroff(COLOR_PAIR(12));
                             attroff(A_BOLD);
                             game.health--;
+                            game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
                             // fight_room();
                         }
                     }
@@ -2179,7 +2255,8 @@ void update_player_state(){
                                 attron(A_BOLD);
                                 int x = rand() % 4 + 10;
                                 mvprintw(2, 27, "YOU PICKED A WEAPON!");
-                                game.inventory.weapon_cnt[j]++;
+                                if (l.rooms[i].used_weapon[xx - l.rooms[i].x1][yy - l.rooms[i].y1]) game.inventory.weapon_cnt[j]++;
+                                else game.inventory.weapon_cnt[j] += weapon_num[j];
                                 refresh();
                                 sleep(1);
                                 attroff(COLOR_PAIR(12));
@@ -2189,6 +2266,30 @@ void update_player_state(){
                         }
                     }
                 }
+            }
+        }
+    }
+    //next to monster
+    {
+        level_struct l = game.levels[game.level];
+        for (int i = 0; i < l.number_of_rooms; i++){
+            if (dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) <= 1 && !l.rooms[i].monster.touch){
+                game.levels[game.level].rooms[i].monster.touch = 1;
+                game.health -= l.rooms[i].monster.damage;
+                if (game.health < 0) game.health = 0;
+                game.time_since_last_attack = 0;
+                attron(COLOR_PAIR(12));
+                attron(A_BOLD);
+                mvprintw(2, 27, "OOPS, YOU WAKED UP THE MONSTER. RUN!");
+                refresh();
+                sleep(1);
+                attroff(COLOR_PAIR(12));
+                attroff(A_BOLD);
+            }
+            else if (dist(l.rooms[i].monster.x, l.rooms[i].monster.y, x, y) <= 1){
+                game.health -= l.rooms[i].monster.damage;
+                if (game.health < 0) game.health = 0;
+                game.time_since_last_attack = 0;
             }
         }
     }
@@ -2295,6 +2396,7 @@ void inventory_menu(){
                         game.inventory.foods[j] = game.inventory.foods[j + 1];
                     }
                     game.energy++;
+                    if (game.energy > 30) game.energy = 30;
                     game.inventory.number_of_foods--;
                     print_game();
                 }
@@ -2331,11 +2433,11 @@ void weapon_menu(){
                             cnt++;
                             continue;
                         }
-                        if (j == 8) mvprintw(13 + i, 94, "🛠️ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 9) mvprintw(13 + i, 94, "🗡️ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 10) mvprintw(13 + i, 94, "M : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 11) mvprintw(13 + i, 94, "↳ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 12) mvprintw(13 + i, 94, "☭ : %d", game.inventory.weapon_cnt[j]);
+                        if (j == 8) mvprintw(13 + i, 94, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 9) mvprintw(13 + i, 88, "DAGGER 🗡️ (range 5 damage 12) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 10) mvprintw(13 + i, 88, "MAGIC WAND M (range 10 damage 15) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 11) mvprintw(13 + i, 88, "NORMAL ARROW ↳ (range 5 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 12) mvprintw(13 + i, 88, "SWORD ☭ (range 1 damage 10): %d", game.inventory.weapon_cnt[j]);
                         cnt++;
                     }
                 }
@@ -2350,11 +2452,11 @@ void weapon_menu(){
                             cnt++;
                             continue;
                         }
-                        if (j == 8) mvprintw(13 + i, 94, "🛠️ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 9) mvprintw(13 + i, 94, "🗡️ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 10) mvprintw(13 + i, 94, "M : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 11) mvprintw(13 + i, 94, "↳ : %d", game.inventory.weapon_cnt[j]);
-                        else if (j == 12) mvprintw(13 + i, 94, "☭ : %d", game.inventory.weapon_cnt[j]);
+                        if (j == 8) mvprintw(13 + i, 94, "MACE 🛠️ (range 1 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 9) mvprintw(13 + i, 88, "DAGGER 🗡️ (range 5 damage 12) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 10) mvprintw(13 + i, 88, "MAGIC WAND M (range 10 damage 15) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 11) mvprintw(13 + i, 88, "NORMAL ARROW ↳ (range 5 damage 5) : %d", game.inventory.weapon_cnt[j]);
+                        else if (j == 12) mvprintw(13 + i, 88, "SWORD ☭ (range 1 damage 10): %d", game.inventory.weapon_cnt[j]);
                         cnt++;
                     }
                 }
@@ -2388,12 +2490,231 @@ void weapon_menu(){
         else if (ch == 10){
             for (int i = 0; i < total_menus - 1; i++){
                 if (curmenu == i){
-                    ////
+                    int cnt = 0;
+                    for (int j = 0; j < 20; j++){
+                        if (game.inventory.weapon_cnt[j]){
+                            if (i != cnt){
+                                cnt++;
+                                continue;
+                            }
+                            pick_weapon(j);
+                            return;
+                        }
+                    }
                 }
             }
             if (curmenu == total_menus - 1){
                 return;
             }
+        }
+    }
+}
+void move_monster(int mx, int my){
+    level_struct l = game.levels[game.level];
+    for (int i = 0; i < l.number_of_rooms; i++){
+        int x1 = l.rooms[i].x1, x2 = l.rooms[i].x2, y1 = l.rooms[i].y1, y2 = l.rooms[i].y2;
+        monster_struct m = l.rooms[i].monster;
+        if (!m.alive) continue;
+        if (m.touch && m.len == 0){
+            game.levels[game.level].rooms[i].monster.len = m.lensave;
+            game.levels[game.level].rooms[i].monster.touch = 0;
+            continue;;
+        }
+        if (x1 <= game.player.x && game.player.x <= x2 && y1 <= game.player.y && game.player.y <= y2){
+            if (!m.touch){
+                int check = 0;
+                while(!check){
+                    int arr[6] = {-1, 1, 0, 0, 0, 0};
+                    int val = rand() % 6;
+                    int dir = rand() % 2;
+                    int xx, yy;
+                    if (dir == 0) xx = 0, yy = arr[val];
+                    else yy = 0, xx = arr[val];
+                    if (x1 < m.x + xx && m.x + xx < x2 && y1 < m.y + yy && m.y + yy < y2){
+                        game.levels[game.level].rooms[i].monster.x += xx;
+                        game.levels[game.level].rooms[i].monster.y += yy;
+                        check = 1;
+                    }
+                }
+            }
+            if (!m.alive || !m.len || !m.touch) continue;
+            if (x1 < m.x + mx && m.x + mx < x2 && y1 < m.y + my && m.y + my < y2 && !(m.x + mx == game.player.x && m.y + my == game.player.y)){
+                game.levels[game.level].rooms[i].monster.x += mx;
+                game.levels[game.level].rooms[i].monster.y += my;
+                game.levels[game.level].rooms[i].monster.len--;
+            }
+        }
+    }
+}
+void pick_weapon(int ind){
+    clear();
+    print_game();
+    if (game.cur_weapon){
+        attron(COLOR_PAIR(12));
+        attron(A_BOLD);
+        mvprintw(2, 27, "YOU ALREADY HAVE A WEAPON. PUT IT IN YOUR BACKPACK BY PRESSING W");
+        refresh();
+        sleep(2);
+        attroff(COLOR_PAIR(12));
+        attroff(A_BOLD);
+        return;
+    }
+    attron(COLOR_PAIR(12));
+    attron(A_BOLD);
+    mvprintw(2, 27, "YOU CHANGED YOUR WEAPON TO %s", weapon_name[ind]);
+    refresh();
+    sleep(2);
+    attroff(COLOR_PAIR(12));
+    attroff(A_BOLD);
+    game.inventory.weapon_cnt[ind]--;
+    game.cur_weapon = ind;
+    
+}
+void fight(){
+    int w = game.cur_weapon;
+    int x = game.player.x;
+    int y = game.player.y;
+    if (weapon_dist[w] == 1){
+        monster_damage(x, y - 1); monster_damage(x - 1, y); monster_damage(x, y + 1); monster_damage(x + 1, y);
+        monster_damage(x - 1, y - 1); monster_damage(x + 1, y - 1); monster_damage(x - 1, y + 1); monster_damage(x + 1, y + 1);
+        if (game.cur_weapon != 8 && game.cur_weapon != 12) game.inventory.weapon_cnt[game.cur_weapon] --;
+        if (game.cur_weapon != 8 && game.cur_weapon != 12 && !game.inventory.weapon_cnt[game.cur_weapon]){
+            game.cur_weapon = 0;
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "OUT OF WEAPON");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
+        }
+        last_fight = 'a';
+    }
+    else{
+        int c = getch();
+        last_fight = c;
+        if (c == KEY_UP){
+            shoot_line(0, -1, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_DOWN){
+            shoot_line(0, 1, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_RIGHT){
+            shoot_line(1, 0, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_LEFT){
+            shoot_line(-1, 0, weapon_dist[game.cur_weapon]);
+        }
+        if (game.cur_weapon != 8 && game.cur_weapon != 12) game.inventory.weapon_cnt[game.cur_weapon] --;
+        if (game.cur_weapon != 8 && game.cur_weapon != 12 && !game.inventory.weapon_cnt[game.cur_weapon]){
+            game.cur_weapon = 0;
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "OUT OF WEAPON");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
+        }
+    }
+}
+int monster_damage(int x, int y){
+    level_struct l = game.levels[game.level];
+    for (int i = 0; i < l.number_of_rooms; i++){
+        if (!l.rooms[i].monster.alive) continue;
+        if (x == l.rooms[i].monster.x && y == l.rooms[i].monster.y){
+            game.levels[game.level].rooms[i].monster.health -= weapon_damage[game.cur_weapon];
+            if (game.cur_weapon == 10){
+                game.levels[game.level].rooms[i].monster.len = 0;
+            }
+            if (l.rooms[i].monster.health <= 0){
+                l.rooms[i].monster.health = 0;
+                game.levels[game.level].rooms[i].monster.alive = 0;
+            }
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "YOU HIT %c . Current health : %d", l.rooms[i].monster.name, l.rooms[i].monster.health);
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
+            return 1;
+        }
+    }
+    return 0;
+}
+void shoot_line(int xx, int yy, int d){
+    int x = game.player.x, y = game.player.y;
+    while(d && !is_wall(x + xx, y + yy)){
+        x += xx;
+        y += yy;
+        if (monster_damage(x, y)) return;
+        d--;
+    }
+    put_weapon(x, y);
+}
+int is_wall(int x, int y){
+    level_struct l = game.levels[game.level];
+    for (int i = 0; i < l.number_of_rooms; i++){
+        room_struct r = l.rooms[i];
+        if ((x == r.x1 || x == r.x2) && r.y1 <= y && y <= r.y2) return 1;
+        if ((y == r.y1 || y == r.y2) && r.x1 <= x && x <= r.x2) return 1;
+    }
+    return 0;
+}
+void put_weapon(int x, int y){
+    level_struct l = game.levels[game.level];
+    for (int i = 0; i < l.number_of_rooms; i++){
+        room_struct r = l.rooms[i];
+        if (r.y1 <= y && y <= r.y2 && r.x1 <= x && x <= r.x2){
+            game.levels[game.level].rooms[i].in[x - r.x1][y - r.y1] = game.cur_weapon;
+            game.levels[game.level].rooms[i].used_weapon[x - r.x1][y - r.y1] = 1;
+        }
+    }
+}
+void fight_a(){
+    int w = game.cur_weapon;
+    int x = game.player.x;
+    int y = game.player.y;
+    if (weapon_dist[w] == 1){
+        monster_damage(x, y - 1); monster_damage(x - 1, y); monster_damage(x, y + 1); monster_damage(x + 1, y);
+        monster_damage(x - 1, y - 1); monster_damage(x + 1, y - 1); monster_damage(x - 1, y + 1); monster_damage(x + 1, y + 1);
+        if (game.cur_weapon != 8 && game.cur_weapon != 12) game.inventory.weapon_cnt[game.cur_weapon] --;
+        if (game.cur_weapon != 8 && game.cur_weapon != 12 && !game.inventory.weapon_cnt[game.cur_weapon]){
+            game.cur_weapon = 0;
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "OUT OF WEAPON");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
+        }
+    }
+    else if (last_fight != 'a'){
+        int c = last_fight;
+        if (c == KEY_UP){
+            shoot_line(0, -1, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_DOWN){
+            shoot_line(0, 1, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_RIGHT){
+            shoot_line(1, 0, weapon_dist[game.cur_weapon]);
+        }
+        else if (c == KEY_LEFT){
+            shoot_line(-1, 0, weapon_dist[game.cur_weapon]);
+        }
+        if (game.cur_weapon != 8 && game.cur_weapon != 12) game.inventory.weapon_cnt[game.cur_weapon] --;
+        if (game.cur_weapon != 8 && game.cur_weapon != 12 && !game.inventory.weapon_cnt[game.cur_weapon]){
+            game.cur_weapon = 0;
+            attron(COLOR_PAIR(12));
+            attron(A_BOLD);
+            mvprintw(2, 27, "OUT OF WEAPON");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(12));
+            attroff(A_BOLD);
         }
     }
 }
