@@ -6,6 +6,7 @@
 #include <time.h>
 #include <locale.h>
 #include <ncurses.h>
+#include <signal.h>
 
 
 FILE *users_ptr;
@@ -58,6 +59,7 @@ typedef struct{
     int stairs_x;
     int stairs_y;
     int treasure_room[10];
+    int telesm_room[10];
 }level_struct;
 typedef struct{
     int x, y;
@@ -105,6 +107,7 @@ int weapon_dist[20];
 int weapon_num[20];
 int move_g = 0;
 char last_fight;
+int music = 0;
 
 
 void draw_border_menu();
@@ -332,7 +335,7 @@ void fight_a();
 void potion_menu();
 void pick_potion(int ind);
 void character_settings();
-
+pid_t pid;
 
 
 
@@ -348,10 +351,6 @@ int main(){
     keypad(stdscr, TRUE);
     noecho();
     curs_set(0);
-    // mvprintw(1, 1, "✬.");
-    // mvprintw(2, 1, "..");
-    // refresh();
-    // sleep(3);
     weapon_damage[8] = 5, weapon_damage[9] = 12, weapon_damage[10] = 15, weapon_damage[11] = 5, weapon_damage[12] = 10;
     weapon_name[8] = "MACE", weapon_name[9] = "DAGGER", weapon_name[10] = "MAGIC_WAND", weapon_name[11] = "NORMAL_ARROW", weapon_name[12] = "SWORD";
     weapon_dist[8] = 1, weapon_dist[9] = 5, weapon_dist[10] = 10, weapon_dist[11] = 5, weapon_dist[12] = 1;
@@ -390,13 +389,17 @@ int main(){
         init_pair(30, COLOR_CYAN, COLOR_WHITE);
         init_pair(31, COLOR_MAGENTA, COLOR_WHITE);
         init_pair(32, COLOR_RED, COLOR_WHITE);
+        init_pair(33, 46, COLOR_BLACK);
+        init_pair(34, 130, COLOR_BLACK);
+        init_pair(35, 220, COLOR_BLACK);
+        init_pair(36, 28, COLOR_BLACK);
     }
     else return 0;
     game.difficulty = 1;
     game.player_color = 27;
     menus();
     pregame();
-    while(game.health){
+    while(game.health > 0){
         print_game();
         move_player();
         update_player_state();
@@ -414,6 +417,33 @@ int check_correct_password(char* password){
     char s[30];
     if (strcmp(password, user.password) == 0) return 1;
     return 0;
+}
+void forget_password_menu(){
+    clear();
+    echo();
+    draw_border_menu();
+    attron(COLOR_PAIR(2));
+    attron(A_BOLD);
+    mvprintw(3, COLS / 2 - 20, "What comes once in a minute,");
+    mvprintw(4, COLS / 2 - 20, "twice in a moment,");
+    mvprintw(5, COLS / 2 - 20, "but never in a thousand years?");
+    attroff(COLOR_PAIR(2));
+    attroff(A_BOLD);
+    refresh();
+    char ans[30];
+    scanw("%s", ans);
+    sleep(1);
+    if (strcmp(ans, "M") == 0 || strcmp(ans, "m") == 0){
+        noecho();
+        clear();
+        return;
+    }
+    else{
+        noecho();
+        clear();
+        menus();
+    }
+
 }
 void login_menu(){
     clear();
@@ -465,10 +495,15 @@ void login_menu(){
                 clear();
                 menus();
             }
+            if (strcmp(password, "f") == 0){
+                forget_password_menu();
+                return;
+            }
             if (!check_correct_password(password)){
                 attron(COLOR_PAIR(4));
                 attron(A_BLINK);
-                mvprintw(3, COLS / 2 - 20, "Wrong Password, Enter q to exit");
+                mvprintw(3, COLS / 2 - 20, "Wrong Password, Enter q to exit,");
+                mvprintw(4, COLS / 2 - 20, "Enter f if you dont remember your password");
                 attroff(COLOR_PAIR(4));
                 attroff(A_BLINK);
                 refresh();
@@ -520,8 +555,16 @@ void draw_border_menu(){
         mvprintw(0, i," ");
         mvprintw(20, i," ");
     }
-    refresh();
     attroff(COLOR_PAIR(1));
+    int x = rand() % 3;
+    attron(COLOR_PAIR(27 + x));
+    mvprintw(23, COLS / 2 - 15, " RRR    OOO   GGG  U   U  EEEEE");
+    mvprintw(24, COLS / 2 - 15, " R  R  O   O G     U   U  E");
+    mvprintw(25, COLS / 2 - 15, " RRR   O   O G  GG U   U  EEEE");
+    mvprintw(26, COLS / 2 - 15, " R  R  O   O G   G U   U  E");
+    mvprintw(27, COLS / 2 - 15, " R   R  OOO   GGG   UUU   EEEEE");
+    attroff(COLOR_PAIR(27 + x));
+    refresh();
 }
 void draw_border_scoreboard(){
     attron(COLOR_PAIR(1));
@@ -998,6 +1041,124 @@ void character_settings(){
         refresh();
     }
 }
+void sound_settings(){
+    clear();
+    int curmenu = 0;
+    int total_menus = 4;
+    while(1){
+        clear();
+        attron(A_BOLD);
+        attron(COLOR_PAIR(2));
+        mvprintw(4, (COLS - 16) / 2, "Sound Settings");
+        attroff(A_BOLD);
+        attroff(COLOR_PAIR(2));
+        draw_border_menu();
+        if (curmenu == 0){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "On");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(6, (COLS - 16) / 2, "On");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 1){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Off");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(7, (COLS - 16) / 2, "Off");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 2){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Next");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(8, (COLS - 16) / 2, "Next");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        if (curmenu == 3){
+            attron(COLOR_PAIR(3));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(3));
+            attroff(A_BLINK);
+        }
+        else{
+            attron(COLOR_PAIR(2));
+            attron(A_BLINK);
+            mvprintw(9, (COLS - 16) / 2, "Exit");
+            attroff(COLOR_PAIR(2));
+            attroff(A_BLINK);
+        }
+        int ch = getch();
+        if (ch == KEY_UP){
+            curmenu--;
+            curmenu = (curmenu + total_menus) % total_menus;
+        }
+        else if (ch == KEY_DOWN){
+            curmenu++;
+            curmenu %= total_menus;
+        }
+        else if (ch == 10){
+            if (curmenu == 0){
+                pid = fork();
+                clear();
+                if (pid == 0){
+                    execlp("mpg123", "mpg123", "-q", "--loop", "-1", "music.mp3", NULL);
+                }
+                music = 1;
+                pregame();
+                return;
+            }
+            else if (curmenu == 1){
+                kill(pid, SIGTERM);
+                pregame();
+                return;
+            }
+            else if (curmenu == 2){
+                kill(pid, SIGTERM);
+                pid = fork();
+                clear();
+                if (pid == 0){
+                    execlp("mpg123", "mpg123", "-q", "--loop", "-1", "fear.mp3", NULL);
+                }
+                pregame();
+                return;
+            }
+            else{
+                settings();
+                return;
+            }
+        }
+        else{
+            attron(COLOR_PAIR(4));
+            mvprintw(1, COLS / 2 - 29, "Invalid Key !");
+            refresh();
+            sleep(1);
+            attroff(COLOR_PAIR(4));
+        }
+        refresh();
+    }
+}
 void settings(){
     clear();
     int curmenu = 0;
@@ -1087,7 +1248,7 @@ void settings(){
             }
             else if (curmenu == 2){
                 clear();
-                // sound_settings();
+                sound_settings();
                 return;
             }
             else{
@@ -1368,7 +1529,7 @@ void make_levels(){
     for (int le = 0; le < 5; le++){
         level_struct l;
         l.number_of_rooms = 7;
-        for (int i = 0; i < 10; i++) l.treasure_room[i] = 0;
+        for (int i = 0; i < 10; i++) l.treasure_room[i] = 0, l.telesm_room[i] = 0;
         int mark[9];
         for (int i = 0; i < 9; i++) mark[i] = 0;
         int first_room = -1;
@@ -1429,6 +1590,18 @@ void make_levels(){
         game.levels[le].treasure_room[x] = 1;
         game.levels[le].rooms[x].in[5][4] = game.levels[le].rooms[x].in[1][4] = game.levels[le].rooms[x].in[2][4] = game.levels[le].rooms[x].in[4][3] = 3;
         game.levels[le].rooms[x].in[5][5] = 4;
+    }
+    //telesm
+    {
+        int le = 3;
+        int x = rand() % 6;
+        game.levels[le].telesm_room[x] = 1;
+        game.levels[le].rooms[x].monster.alive = 0;
+        game.levels[le].rooms[x].in[5][4] = 13; game.levels[le].rooms[x].in[1][4] = 14; game.levels[le].rooms[x].in[2][4] = 15; game.levels[le].rooms[x].in[4][3] = 13;
+        game.levels[le].rooms[x].in[5][5] = 14;
+        game.levels[le].rooms[x].in[13][12] = 15;
+        game.levels[le].rooms[x].in[14][10] = 13;
+        game.levels[le].rooms[x].in[8][12] = 14;
     }
     // normal foods
     {
@@ -1565,6 +1738,7 @@ void make_levels(){
     l.rooms[0].x1 = 70, l.rooms[0].x2 = 120;
     l.rooms[0].y1 = 5, l.rooms[0].y2 = 40;
     l.treasure_room[0] = 1;
+    l.telesm_room[0] = 0;
     l.rooms[0].number_of_doors = 0; 
     for (int i = 0; i < 300; i++){
         l.rooms[0].last_level_monsters[i].alive = 0;
@@ -1572,31 +1746,12 @@ void make_levels(){
     l.room_numbers[0] = 0;
     int le = 5;
     game.levels[le] = l;
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 3; i++){
         int x = rand() % 50 + 70;
         int y = rand() % 35 + 5;
         int z = rand() % 5;
         game.levels[le].rooms[0].last_level_monsters[i].alive = 1;
-        if (z == 0){
-            game.levels[le].rooms[0].last_level_monsters[i].touch = 0;
-            game.levels[le].rooms[0].last_level_monsters[i].x = x;
-            game.levels[le].rooms[0].last_level_monsters[i].y = y;
-            game.levels[le].rooms[0].last_level_monsters[i].health = 5;
-            game.levels[le].rooms[0].last_level_monsters[i].damage = 1;
-            game.levels[le].rooms[0].last_level_monsters[i].len = 0;
-            game.levels[le].rooms[0].last_level_monsters[i].lensave = 0;
-            game.levels[le].rooms[0].last_level_monsters[i].name = 'D';
-        }
-        else if (z == 1){
-            game.levels[le].rooms[0].last_level_monsters[i].x = x;
-            game.levels[le].rooms[0].last_level_monsters[i].y = y;
-            game.levels[le].rooms[0].last_level_monsters[i].health = 10;
-            game.levels[le].rooms[0].last_level_monsters[i].damage = 2;
-            game.levels[le].rooms[0].last_level_monsters[i].len = 0;
-            game.levels[le].rooms[0].last_level_monsters[i].lensave = 0;
-            game.levels[le].rooms[0].last_level_monsters[i].name = 'F';
-        }
-        else if (z == 2){
+        if (z <= 2){
             game.levels[le].rooms[0].last_level_monsters[i].x = x;
             game.levels[le].rooms[0].last_level_monsters[i].y = y;
             game.levels[le].rooms[0].last_level_monsters[i].health = 15;
@@ -1623,6 +1778,11 @@ void make_levels(){
             game.levels[le].rooms[0].last_level_monsters[i].lensave = 5;
             game.levels[le].rooms[0].last_level_monsters[i].name = 'U';
         }
+    }
+    for (int i = 0; i < 200; i++){
+        int x = rand() % 48 + 1;
+        int y = rand() % 33 + 1;
+        game.levels[le].rooms[0].in[x][y] = 3;
     }
     }
 }
@@ -1696,7 +1856,7 @@ void new_game(){
     game.m = 0;
     game.level = 0;
     last_fight = 'a';
-    game.health = 100;
+    game.health = 200;
     game.energy = 30;
     game.cur_weapon = 8;
     game.time_since_last_attack = 0;
@@ -1774,6 +1934,10 @@ void print_rooms(){
             attron(A_BOLD);
             attron(COLOR_PAIR(2));
         }
+        else if (l.telesm_room[i]){
+            attron(A_BOLD);
+            attron(COLOR_PAIR(36));
+        }
         else{
             attron(A_BOLD);
             attron(COLOR_PAIR(4));
@@ -1788,6 +1952,9 @@ void print_rooms(){
         }
         if (l.treasure_room[i]){
             attroff(COLOR_PAIR(2));
+        }
+        else if (l.telesm_room[i]){
+            attroff(COLOR_PAIR(36));
         }
         else{
             attroff(COLOR_PAIR(4));
@@ -2036,7 +2203,6 @@ int valid(int x, int y){
         for (int j = 0; j < l.rooms[i].number_of_doors; j++){
             if (x == l.rooms[i].doors_x[j] && y == l.rooms[i].doors_y[j] && (!l.rooms[i].password_door[j] || l.rooms[i].password)) check_door = 1;
             else if (x == l.rooms[i].doors_x[j] && y == l.rooms[i].doors_y[j] && l.rooms[i].password_door[j] && !l.rooms[i].password){
-                mvprintw(1, 1, "hi");
                 if (in_corridor(game.player.x, game.player.y)) return 1;
                 attron(COLOR_PAIR(12));
                 attron(A_BOLD);
@@ -2309,6 +2475,10 @@ void update_player_state(){
         level_struct l = game.levels[game.level];
         for (int i = 0; i < l.number_of_rooms; i++){
             if (l.rooms[i].y1 <= y && y <= l.rooms[i].y2 && l.rooms[i].x1 <= x && x <= l.rooms[i].x2){
+                if (game.health < 0) game.health = 0;
+                if (l.telesm_room[i]){
+                    game.health -= 2;
+                }
                 if (!game.levels[game.level].rooms[i].vis){
                     attron(COLOR_PAIR(12));
                     attron(A_BOLD);
@@ -2432,7 +2602,7 @@ void update_player_state(){
                             attron(A_BOLD);
                             mvprintw(2, 27, "OOPS! YOU FELL INTO A HIDDEN TRAP!");
                             refresh();
-                            sleep(2);
+                            sleep(1);
                             attroff(COLOR_PAIR(12));
                             attroff(A_BOLD);
                             game.health --;;
@@ -2478,12 +2648,13 @@ void update_player_state(){
                 for (int yy = l.rooms[i].y1 + 1; yy < l.rooms[i].y2; yy++){
                     if (l.rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] == 5){
                         if (x == xx && y == yy && game.inventory.number_of_foods < 5){
-                            attron(COLOR_PAIR(12));
+                            int x = rand() % 3;
+                            attron(COLOR_PAIR(x + 33));
                             attron(A_BOLD);
                             mvprintw(2, 27, "YOU PICKED UP A FOOD");
                             refresh();
                             sleep(1);
-                            attroff(COLOR_PAIR(12));
+                            attroff(COLOR_PAIR(x + 33));
                             attroff(A_BOLD);
                             game.levels[game.level].rooms[i].in[xx - l.rooms[i].x1][yy - l.rooms[i].y1] = 0;
                             game.inventory.foods[game.inventory.number_of_foods] = 5;
@@ -2660,7 +2831,7 @@ void update_player_state(){
         level_struct l = game.levels[game.level];
         int check = 0;
         for (int i = 0; i < l.number_of_rooms; i++){
-            for (int k = 0; k < 300; k++){
+            for (int k = 0; k < 3; k++){
                 if (l.rooms[i].last_level_monsters[k].alive == 0) continue;
                 check = 1;
                 if (dist(l.rooms[i].last_level_monsters[k].x, l.rooms[i].last_level_monsters[k].y, x, y) <= 1 && !l.rooms[i].last_level_monsters[k].touch){
@@ -2958,13 +3129,13 @@ void move_monster(int mx, int my){
     if (game.level == 5){
         for (int i = 0; i < l.number_of_rooms; i++){
             int x1 = l.rooms[i].x1, x2 = l.rooms[i].x2, y1 = l.rooms[i].y1, y2 = l.rooms[i].y2;
-            for (int k = 0; k < 300; k++){
+            for (int k = 0; k < 2; k++){
                 monster_struct m = l.rooms[i].last_level_monsters[k];
                 if (!m.alive) continue;
                 if (m.touch && m.len == 0){
                     game.levels[game.level].rooms[i].last_level_monsters[k].len = m.lensave;
                     game.levels[game.level].rooms[i].last_level_monsters[k].touch = 0;
-                    continue;;
+                    continue;
                 }
                 if (x1 <= game.player.x && game.player.x <= x2 && y1 <= game.player.y && game.player.y <= y2){
                     if (!m.touch){
