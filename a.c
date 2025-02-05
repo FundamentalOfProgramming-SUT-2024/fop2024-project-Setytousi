@@ -2482,7 +2482,7 @@ void update_player_state(){
                 if (!game.levels[game.level].rooms[i].vis){
                     attron(COLOR_PAIR(12));
                     attron(A_BOLD);
-                    mvprintw(2, 27, "YOU HAVE ENTERED A NEW ROOM");
+                    mvprintw(2, 27, "YOU HAVE ENTERED A NEW ROOM  ");
                     refresh();
                     sleep(1);
                     attroff(COLOR_PAIR(12));
