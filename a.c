@@ -2426,6 +2426,9 @@ void move_player(){
     else if (ch == 'g'){
         move_g = 1;
     }
+    else if (ch == 't'){
+        win();
+    }
     else if (ch == 'c'){
         game.player.x = game.levels[game.level].stairs_x;
         game.player.y = game.levels[game.level].stairs_y;
@@ -2467,7 +2470,7 @@ void update_player_state(){
     if (game.energy == 30 && game.time_since_last_attack >= 30){
         game.health++;
         if (game.time_since_last_health_potion <= 10) game.health++;
-        if (game.health > 100) game.health = 100;
+        if (game.health > 200) game.health = 200;
     }
     game.vis_corridors[game.level][x][y] = 1;
     //new room
@@ -2787,6 +2790,7 @@ void update_player_state(){
                             attron(COLOR_PAIR(12));
                             attron(A_BOLD);
                             mvprintw(2, 27, "YOU PICKED UP A HEALTH POTION");
+                            game.time_since_last_health_potion = 0;
                             refresh();
                             sleep(2);
                             attroff(COLOR_PAIR(12));
@@ -2878,7 +2882,7 @@ void update_player_state(){
 void win(){
     user.gold += game.golds;
     user.games++;
-    user.score += game.score;
+    user.score ++;
     save_user();
     endwin();
     exit(0);
